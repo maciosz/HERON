@@ -15,12 +15,12 @@ def read_bedgraph_file(filename):
 
 def main():
     arguments = parse_arguments()
-    infiles = [read_bedgraph_file(i) for i in arguments.infiles]
+    #infiles = [read_bedgraph_file(i) for i in arguments.infiles]
     data = Data()
     for infile in arguments.infiles:
         data.add_data_from_bedgraph(infile)
     peaks = data.find_peaks()
-    print data.matrix
+    #print data.matrix
     print peaks
 
 if __name__=='__main__':
