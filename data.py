@@ -1,3 +1,4 @@
+import sys
 import numpy
 from hmmlearn import hmm
 
@@ -25,7 +26,7 @@ class Data:
         for line in bedgraph:
             chromosome, start, end, value = line.strip().split()
             if int(end) - int(start) != self.window_size:
-                print "niestala rozdzielczosc!"
+                sys.exit("niestala rozdzielczosc!")
                 # tu powinien byc error
             self.matrix[-1].append(int(value))
 

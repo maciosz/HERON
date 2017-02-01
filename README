@@ -1,0 +1,16 @@
+Find peaks using HMM from hmmlearn.
+
+Preliminary test version of beta version.
+
+Current usage:
+
+./peakcaller.py -i sample1.bedgraph sample2.bedgraph
+
+Current output:
+prints list of peaks
+
+Warning.
+Assumes that bedgraphs have fixed resolution
+ and starts with coordinate 0
+ (bedgraphs are indeed 0-relative,
+ but technically they might start from something else).

@@ -21,7 +21,8 @@ def main():
         data.add_data_from_bedgraph(infile)
     peaks = data.find_peaks()
     #print data.matrix
-    print peaks
+    for start, end in peaks:
+        print '\t'.join((str(start), str(end)))
 
 if __name__=='__main__':
     main()

@@ -13,7 +13,3 @@ def test_peak_calling():
         data.add_data_from_bedgraph(infile)
     peaks = data.find_peaks()
     assert len(peaks) == 3#peaks == [[600, 1800], [2400, 3900], [9400, 10000]]
-
-if __name__=='__main__':
-    main()
-
