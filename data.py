@@ -4,9 +4,10 @@ from hmmlearn import hmm
 
 class Data:
 
-    def __init__(self, window_size=100):
+    def __init__(self, window_size=100, number_of_states=3):
         self.matrix = [] #numpy.array()
         self.window_size = window_size
+        #self.model = hmm.GaussainHMM(number_of_states)
 
     def add_data_from_bedgraph(self, filename):
         bedgraph = open(filename)
@@ -25,20 +26,28 @@ class Data:
         self.matrix[-1].append(int(value))
         for line in bedgraph:
             chromosome, start, end, value = line.strip().split()
-            if int(end) - int(start) != self.window_size:
-                sys.exit("niestala rozdzielczosc!")
+            #if int(end) - int(start) != self.window_size:
+            #    sys.exit("niestala rozdzielczosc!")
                 # tu powinien byc error
+                # tylko ze to sie sypie na koncu chromosomu
             self.matrix[-1].append(int(value))
 
     def find_peaks(self):
         self.matrix = numpy.array(self.matrix).transpose()
-        model = hmm.GaussianHMM(2, covariance_type='full')
+        model = hmm.GaussianHMM(3)#, covariance_type='full')
         model.fit(self.matrix)
+        #print self.matrix
         states = model.predict(self.matrix)
+        self.save_states_to_file(states)
         peaks = self.states_to_peaks(states)
+        print "Transmat matrix:", model.transmat_
         return peaks
 
     def states_to_peaks(self, states):
+        """
+        Assumes that peaks consist from non-zero state.
+        Which is stupid.
+        """
         peaks = []
         counter = 0
         last_state = 0
@@ -49,6 +58,34 @@ class Data:
                 peaks[-1].append(self.window_size * counter)
             counter += 1
             last_state = state
-        if len(peaks[-1]) == 1:
+        if peaks and len(peaks[-1]) == 1:
             peaks[-1].append(self.window_size * counter)    # obczaic czy nie +/- 1
         return peaks
+
+    def save_states_to_file(self, states):
+        output = open("states", 'w')
+        for state in states:
+            output.write(str(state))
+            output.write('\n')
+        """
+        for state in (0, 1, 2):
+            counter = 0
+            last_state = False
+            output = open("state_" + str(state) + ".bed", 'w')
+            for current_state in states:
+                if current_state == state and last_state != state:
+                    region = [self.window_size * counter]
+                elif current_state != state and last_state == state:
+                    try:
+                        region.append(self.window_size * counter)
+                    except:
+                        print counter
+                        print states[counter-20:counter+20]
+                        sys.exit()
+                    output.write('\t'.join(['chr6', str(region[0]), str(region[1])]))
+                    output.write('\n')
+                counter += 1
+                last_state = current_state
+            output.close()
+        """
+                    
