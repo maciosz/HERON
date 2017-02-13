@@ -6,10 +6,16 @@ Current usage:
 
 ./peakcaller.py -i sample1.bedgraph sample2.bedgraph ...
 
+possibly with
+
+-s - number of states (default 3)
+-o - prefix to output files
+
 Current output:
  prints list of peaks: start \t end (it actually doesn't make sense)
  generates file 'states' with, well, states
  can be pasted with windows.bed, awked and used as bed with states
+ ...and now also ready files [prefix]_state_[x].bed
 
 Warning.
 Assumes that bedgraphs have fixed resolution,

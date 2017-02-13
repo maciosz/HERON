@@ -9,11 +9,15 @@ class Data:
         self.window_size = window_size
         self.number_of_states = number_of_states
         self.model = hmm.GaussianHMM(number_of_states, covariance_type='spherical')
+        self.chromosome_lengths = []
 
     def add_data_from_bedgraph(self, filename):
         bedgraph = open(filename)
+        chromosome_lengths = []
         self.matrix.append([])
         chromosome, start, end, value = bedgraph.next().strip().split()
+        last_chromosome = chromosome
+        no_of_windows_in_current_chromosome = 1
         start, end = int(start), int(end)
         self.windows_size = end-start
         if start != 0:
@@ -32,10 +36,22 @@ class Data:
                 # tu powinien byc error
                 # tylko ze to sie sypie na koncu chromosomu
             self.matrix[-1].append(int(value))
+            if chromosome != last_chromosome:
+                chromosome_lengths.append(no_of_windows_in_current_chromosome)
+                no_of_windows_in_current_chromosome = 0
+            no_of_windows_in_current_chromosome += 1
+        chromosome_lengths.append(no_of_windows_in_current_chromosome)
+        print chromosome_lengths
+        if not self.chromosome_lengths:
+            self.chromosome_lengths = chromosome_lengths
+        elif self.chromosome_lengths != chromosome_lengths:
+            sys.exit('nie zgadza sie dlugosc chromosomow miedzy probkami')
+        if sum(self.chromosome_lengths) != len(self.matrix[0]):
+            sys.exit("cos nie tak ze zliczaniem dlugosci chromosomow:" + str(sum(self.chromosome_lengths)) + ' ' + str(len(self.matrix[0])))
 
     def predict_states(self):
         self.matrix = numpy.array(self.matrix).transpose()
-        self.model.fit(self.matrix)
+        self.model.fit(self.matrix, lengths=self.chromosome_lengths)
         states = self.model.predict(self.matrix)
         print "Transmat matrix:", self.model.transmat_
         return states
