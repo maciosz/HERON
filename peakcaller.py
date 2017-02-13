@@ -16,7 +16,6 @@ def parse_arguments():
 
 def main():
     arguments = parse_arguments()
-    #infiles = [read_bedgraph_file(i) for i in arguments.infiles]
     print "Creating data structure..."
     data = Data(number_of_states=arguments.number_of_states)
     print "Reading in data..."

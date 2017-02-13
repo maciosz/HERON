@@ -51,41 +51,12 @@ class Data:
 
     def predict_states(self):
         self.matrix = numpy.array(self.matrix).transpose()
+        print "fitting model"
         self.model.fit(self.matrix, lengths=self.chromosome_lengths)
+        print "predicting states"
         states = self.model.predict(self.matrix)
         print "Transmat matrix:", self.model.transmat_
         return states
-
-
-    def find_peaks(self):
-        self.matrix = numpy.array(self.matrix).transpose()
-        model = hmm.GaussianHMM(self.number_of_states, covariance_type='spherical') #'full')
-        model.fit(self.matrix)
-        #print self.matrix
-        states = model.predict(self.matrix)
-        self.save_states_to_file(states)
-        peaks = self.states_to_peaks(states)
-        print "Transmat matrix:", model.transmat_
-        return peaks
-
-    def states_to_peaks(self, states):
-        """
-        Assumes that peaks consist of non-zero state.
-        Which is stupid.
-        """
-        peaks = []
-        counter = 0
-        last_state = 0
-        for state in states:
-            if state and not last_state:
-                peaks.append([self.window_size * counter])
-            elif not state and last_state:
-                peaks[-1].append(self.window_size * counter)
-            counter += 1
-            last_state = state
-        if peaks and len(peaks[-1]) == 1:
-            peaks[-1].append(self.window_size * counter)    # obczaic czy nie +/- 1
-        return peaks
 
     def save_states_to_file(self, states, prefix=''):
         output = open("states", 'w')
