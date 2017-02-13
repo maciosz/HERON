@@ -4,13 +4,16 @@ Preliminary test version of beta version.
 
 Current usage:
 
-./peakcaller.py -i sample1.bedgraph sample2.bedgraph
+./peakcaller.py -i sample1.bedgraph sample2.bedgraph ...
 
 Current output:
-prints list of peaks
+ prints list of peaks: start \t end (it actually doesn't make sense)
+ generates file 'states' with, well, states
+ can be pasted with windows.bed, awked and used as bed with states
 
 Warning.
-Assumes that bedgraphs have fixed resolution
- and starts with coordinate 0
+Assumes that bedgraphs have fixed resolution,
+ starts with coordinate 0
  (bedgraphs are indeed 0-relative,
- but technically they might start from something else).
+ but technically they might start from something else)
+ and have one chromosome.

@@ -7,6 +7,7 @@ class Data:
     def __init__(self, window_size=100, number_of_states=3):
         self.matrix = [] #numpy.array()
         self.window_size = window_size
+        self.number_of_states = number_of_states
         #self.model = hmm.GaussainHMM(number_of_states)
 
     def add_data_from_bedgraph(self, filename):
@@ -34,7 +35,7 @@ class Data:
 
     def find_peaks(self):
         self.matrix = numpy.array(self.matrix).transpose()
-        model = hmm.GaussianHMM(3)#, covariance_type='full')
+        model = hmm.GaussianHMM(self.number_of_states)#, covariance_type='full')
         model.fit(self.matrix)
         #print self.matrix
         states = model.predict(self.matrix)
@@ -45,7 +46,7 @@ class Data:
 
     def states_to_peaks(self, states):
         """
-        Assumes that peaks consist from non-zero state.
+        Assumes that peaks consist of non-zero state.
         Which is stupid.
         """
         peaks = []
@@ -67,15 +68,19 @@ class Data:
         for state in states:
             output.write(str(state))
             output.write('\n')
-        """
-        for state in (0, 1, 2):
+
+        #ten kawalek z jakiegos powodu nie dziala
+        # moze teraz zadziala jak zmienilam poczatkowa wartosc last_state
+        # bo dla False porownanie False == 0 daje True
+        # i moze za wczesnie wejsc w elif
+        for state_being_saved in range(self.number_of_states):
             counter = 0
-            last_state = False
-            output = open("state_" + str(state) + ".bed", 'w')
+            last_state = 'last_state'
+            output = open("state_" + str(state_being_saved) + ".bed", 'w')
             for current_state in states:
-                if current_state == state and last_state != state:
+                if current_state == state_being_saved and last_state != state_being_saved:
                     region = [self.window_size * counter]
-                elif current_state != state and last_state == state:
+                elif current_state != state_being_saved and last_state == state_being_saved:
                     try:
                         region.append(self.window_size * counter)
                     except:
@@ -87,5 +92,4 @@ class Data:
                 counter += 1
                 last_state = current_state
             output.close()
-        """
                     

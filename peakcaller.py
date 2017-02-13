@@ -10,10 +10,13 @@ def parse_arguments():
                         help='input files')
     parser.add_argument('-s', dest='number_of_states', action='store', type=int, default=3,
                         help='number of states (default: 3)')
+    parser.add_argument('-o', dest='output', action='store', type=str,
+                        help='output (currently not used)')
     return parser.parse_args()
 
 def read_bedgraph_file(filename):
     return coverage.Coverage(filename, 'bedgraph')
+    # do i even need that?
 
 def main():
     arguments = parse_arguments()
