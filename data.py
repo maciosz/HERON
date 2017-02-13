@@ -8,7 +8,7 @@ class Data:
         self.matrix = [] #numpy.array()
         self.window_size = window_size
         self.number_of_states = number_of_states
-        #self.model = hmm.GaussainHMM(number_of_states)
+        self.model = hmm.GaussianHMM(number_of_states, covariance_type='spherical')
 
     def add_data_from_bedgraph(self, filename):
         bedgraph = open(filename)
@@ -33,9 +33,17 @@ class Data:
                 # tylko ze to sie sypie na koncu chromosomu
             self.matrix[-1].append(int(value))
 
+    def predict_states(self):
+        self.matrix = numpy.array(self.matrix).transpose()
+        self.model.fit(self.matrix)
+        states = self.model.predict(self.matrix)
+        print "Transmat matrix:", self.model.transmat_
+        return states
+
+
     def find_peaks(self):
         self.matrix = numpy.array(self.matrix).transpose()
-        model = hmm.GaussianHMM(self.number_of_states)#, covariance_type='full')
+        model = hmm.GaussianHMM(self.number_of_states, covariance_type='spherical') #'full')
         model.fit(self.matrix)
         #print self.matrix
         states = model.predict(self.matrix)
@@ -63,20 +71,15 @@ class Data:
             peaks[-1].append(self.window_size * counter)    # obczaic czy nie +/- 1
         return peaks
 
-    def save_states_to_file(self, states):
+    def save_states_to_file(self, states, prefix=''):
         output = open("states", 'w')
         for state in states:
             output.write(str(state))
             output.write('\n')
-
-        #ten kawalek z jakiegos powodu nie dziala
-        # moze teraz zadziala jak zmienilam poczatkowa wartosc last_state
-        # bo dla False porownanie False == 0 daje True
-        # i moze za wczesnie wejsc w elif
         for state_being_saved in range(self.number_of_states):
             counter = 0
             last_state = 'last_state'
-            output = open("state_" + str(state_being_saved) + ".bed", 'w')
+            output = open(prefix + "_state_" + str(state_being_saved) + ".bed", 'w')
             for current_state in states:
                 if current_state == state_being_saved and last_state != state_being_saved:
                     region = [self.window_size * counter]
@@ -92,4 +95,3 @@ class Data:
                 counter += 1
                 last_state = current_state
             output.close()
-                    
