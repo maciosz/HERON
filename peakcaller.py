@@ -1,4 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/env python 
+
+
+#-W ignore::DeprecationWarning
+
 import argparse
 from hmmlearn import hmm
 from data import Data
@@ -6,11 +10,11 @@ from data import Data
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', dest='infiles', action='store', type=str, nargs='+',
-                        help='input files')
+                        help='input files (currently only bedgraph format is allowed')
     parser.add_argument('-s', dest='number_of_states', action='store', type=int, default=3,
                         help='number of states (default: 3)')
     parser.add_argument('-o', dest='output_prefix', action='store', type=str,
-                        help='prefix to output files (currently not used)')
+                        help='prefix to output files')
     return parser.parse_args()
 
 
@@ -21,7 +25,9 @@ def main():
     print "Reading in data..."
     for infile in arguments.infiles:
         data.add_data_from_bedgraph(infile)
-    print "Data ready do analyse. Finding peaks"
+    print "Chromosome names:", data.chromosome_names
+    print "Chromosome lengths:", data.chromosome_lengths
+    print "Data ready to analyse. Finding peaks"
     states = data.predict_states()
     data.save_states_to_file(states, arguments.output_prefix)
     #peaks = data.find_peaks()
