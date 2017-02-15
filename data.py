@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 
-# -W ignore::DeprecationWarning
-
 import sys
 import numpy
 import warnings
@@ -61,6 +59,30 @@ class Data:
             sys.exit('chromosome lengths between samples don\'t match')
         if sum(self.chromosome_lengths) != len(self.matrix[0]):
             sys.exit("sth\'s wrong with calculating chromosome lengths:" + str(sum(self.chromosome_lengths)) + ' ' + str(len(self.matrix[0])))
+
+    def add_data_from_bed(self, filename, mode='binary', proportionally=True):
+        """
+        mode:
+            binary - 1 if there is any peak in the window, 0 otherwise
+            number - count peaks in the window
+            length - summaric length of the peaks in the window
+            mean_length - mean length of the peaks in the window
+                (? is this really needed?)
+            sum_score - sum score of the peaks
+            mean_score - calculate average score of the peaks
+        proportionally:
+            (stupid name, think of sth else)
+            applies to modes number, sum_score and mean_score;
+            if a peak overlaps window partially,
+            count it's score/presence multiplied but the proper fraction
+                (there is a discuss in the todo file about what "proper" means)
+        """
+        bed_file = open(filename)
+        for line in bed_file:
+            line = line.strip().split()
+            chromosome, start, end, name, score, strand = line
+            # check if it's not a simplified bed with less columns
+        return None
 
     def predict_states(self):
         warnings.filterwarnings("ignore", category=DeprecationWarning)

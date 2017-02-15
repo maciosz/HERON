@@ -1,8 +1,5 @@
 #!/usr/bin/env python 
 
-
-#-W ignore::DeprecationWarning
-
 import argparse
 from hmmlearn import hmm
 from data import Data
@@ -15,6 +12,10 @@ def parse_arguments():
                         help='number of states (default: 3)')
     parser.add_argument('-o', dest='output_prefix', action='store', type=str,
                         help='prefix to output files')
+    parser.add_argument('-b', dest='bed_file', action='store', type=str,
+                        help='optional bed file (currently not used)')
+    parser.add_argument('-m', dest='bed_mode', action='store', type=str,
+                        help='mode for reading in bed file, currently not used')
     return parser.parse_args()
 
 
@@ -30,9 +31,6 @@ def main():
     print "Data ready to analyse. Finding peaks"
     states = data.predict_states()
     data.save_states_to_file(states, arguments.output_prefix)
-    #peaks = data.find_peaks()
-    #for start, end in peaks:
-    #    print '\t'.join((str(start), str(end)))
     "...done."
 
 if __name__=='__main__':

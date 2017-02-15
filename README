@@ -18,8 +18,10 @@ Current output:
  ...and now also ready files [prefix]_state_[x].bed
 
 Warning.
-Assumes that bedgraphs have fixed resolution,
- starts with coordinate 0
+Assumes that bedgraphs have fixed resolution
+ and starts with coordinate 0
  (bedgraphs are indeed 0-relative,
  but technically they might start from something else)
- and have one chromosome.
+ (ok, to be fair it will manage with bedgraphs that start with multiplication of resolution,
+ like 200; it will just add missing windows.)
+
