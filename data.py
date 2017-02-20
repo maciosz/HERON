@@ -3,12 +3,13 @@
 import sys
 import numpy
 import warnings
+import logging
 from hmmlearn import hmm
 
 class Data:
 
     def __init__(self, window_size=100, number_of_states=3):
-        self.matrix = [] #numpy.array()
+        self.matrix = []
         self.window_size = window_size
         self.number_of_states = number_of_states
         self.model = hmm.GaussianHMM(number_of_states,
@@ -21,12 +22,14 @@ class Data:
         self.chromosome_names = []
 
     def add_data_from_bedgraph(self, filename):
+        logging.info("reading file" + filename)
         bedgraph = open(filename)
         chromosome_lengths = []
+        chromosome_names = []
         self.matrix.append([])
         chromosome, start, end, value = bedgraph.next().strip().split()
         last_chromosome = chromosome
-        self.chromosome_names.append(chromosome)
+        chromosome_names.append(chromosome)
         no_of_windows_in_current_chromosome = 1
         start, end = int(start), int(end)
         self.windows_size = end-start
@@ -48,15 +51,18 @@ class Data:
             self.matrix[-1].append(int(value))
             if chromosome != last_chromosome:
                 chromosome_lengths.append(no_of_windows_in_current_chromosome)
-                self.chromosome_names.append(chromosome)
+                chromosome_names.append(chromosome)
                 no_of_windows_in_current_chromosome = 0
             no_of_windows_in_current_chromosome += 1
             last_chromosome = chromosome
         chromosome_lengths.append(no_of_windows_in_current_chromosome)
         if not self.chromosome_lengths:
             self.chromosome_lengths = chromosome_lengths
+            self.chromosome_names = chromosome_names
         elif self.chromosome_lengths != chromosome_lengths:
             sys.exit('chromosome lengths between samples don\'t match')
+        elif self.chromosome_names != chromosome_names:
+            sys.exit('chromosome names between samples don\'t match')
         if sum(self.chromosome_lengths) != len(self.matrix[0]):
             sys.exit("sth\'s wrong with calculating chromosome lengths:" + str(sum(self.chromosome_lengths)) + ' ' + str(len(self.matrix[0])))
 
@@ -75,16 +81,17 @@ class Data:
             applies to modes number, sum_score and mean_score;
             if a peak overlaps window partially,
             count it's score/presence multiplied but the proper fraction
-                (there is a discuss in the todo file about what "proper" means)
+                (there is a discussion in the todo file about what "proper" means)
         """
+        logging.info("reading file" + filename)
         bed_file = open(filename)
         for line in bed_file:
             line = line.strip().split()
             chromosome, start, end, name, score, strand = line
-            # check if it's not a simplified bed with less columns
-        return None
+            # it should check if it's not a simplified bed with less columns
 
     def predict_states(self):
+        logging.info("predicting states, stay tuned")
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         warnings.filterwarnings("ignore", category=RuntimeWarning)
         self.matrix = numpy.array(self.matrix).transpose()
@@ -92,10 +99,12 @@ class Data:
         self.model.fit(self.matrix, lengths=self.chromosome_lengths)
         print "predicting states"
         probability, states = self.model.decode(self.matrix, lengths=self.chromosome_lengths)
-        print "Transmat matrix:", self.model.transmat_
+        print "Is convergent:", self.model.monitor_.converged
         print "Score:", self.model.score(self.matrix, self.chromosome_lengths)
         print "Probability:", probability
-        print "Is convergent:", self.model.monitor_.converged
+        print "Transmat matrix:", self.model.transmat_
+        print "Means:", self.model.means_
+        print "Covars:", self.model.covars_
         return states
 
     def save_states_to_file(self, states, prefix=''):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python 
 
+import logging
 import argparse
-from hmmlearn import hmm
 from data import Data
 
 def parse_arguments():
@@ -14,24 +14,30 @@ def parse_arguments():
                         help='prefix to output files')
     parser.add_argument('-b', dest='bed_file', action='store', type=str,
                         help='optional bed file (currently not used)')
-    parser.add_argument('-m', dest='bed_mode', action='store', type=str,
+    parser.add_argument('-m', dest='bed_mode', action='store', type=str, default='binary',
                         help='mode for reading in bed file, currently not used')
     return parser.parse_args()
 
 
 def main():
     arguments = parse_arguments()
-    print "Creating data structure..."
+    logging.basicConfig(filename=arguments.output_prefix + ".log",
+                        level=logging.INFO,
+                        format='%(levelname)s\t%(asctime)s\t%(message)s',
+                        datefmt="%d.%m.%Y %H:%M:%S")
+    logging.info("Creating data structure...")
     data = Data(number_of_states=arguments.number_of_states)
-    print "Reading in data..."
+    logging.info("Reading in data...")
     for infile in arguments.infiles:
         data.add_data_from_bedgraph(infile)
-    print "Chromosome names:", data.chromosome_names
-    print "Chromosome lengths:", data.chromosome_lengths
-    print "Data ready to analyse. Finding peaks"
+    if arguments.bed_file:
+        data.add_data_from_bed(arguments.bed_file, arguments.bed_mode)
+    logging.debug("Chromosome names: " + str(data.chromosome_names))
+    logging.debug("Chromosome lengths: " + str(data.chromosome_lengths))
+    logging.info("Data ready to analyse. Finding peaks")
     states = data.predict_states()
     data.save_states_to_file(states, arguments.output_prefix)
-    "...done."
+    logging.info("...done.")
 
 if __name__=='__main__':
     main()

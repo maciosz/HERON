@@ -12,10 +12,10 @@ possibly with
 -o - prefix to output files
 
 Current output:
- prints list of peaks: start \t end (it actually doesn't make sense)
- generates file 'states' with, well, states
+ generates file '[prefix]_states' with, well, states
  can be pasted with windows.bed, awked and used as bed with states
  ...and now also ready files [prefix]_state_[x].bed
+ Also, generates [prefix].log with log messages.
 
 Warning.
 Assumes that bedgraphs have fixed resolution
