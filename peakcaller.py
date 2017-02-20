@@ -22,6 +22,7 @@ def parse_arguments():
 def main():
     arguments = parse_arguments()
     logging.basicConfig(filename=arguments.output_prefix + ".log",
+                        filemode='w',
                         level=logging.INFO,
                         format='%(levelname)s\t%(asctime)s\t%(message)s',
                         datefmt="%d.%m.%Y %H:%M:%S")
@@ -37,6 +38,7 @@ def main():
     logging.info("Data ready to analyse. Finding peaks")
     states = data.predict_states()
     data.save_states_to_file(states, arguments.output_prefix)
+    data.write_stats_to_file(arguments.output_prefix)
     logging.info("...done.")
 
 if __name__=='__main__':

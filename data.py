@@ -95,16 +95,11 @@ class Data:
         warnings.filterwarnings("ignore", category=DeprecationWarning)
         warnings.filterwarnings("ignore", category=RuntimeWarning)
         self.matrix = numpy.array(self.matrix).transpose()
-        print "fitting model"
+        logging.info("fitting model")
         self.model.fit(self.matrix, lengths=self.chromosome_lengths)
-        print "predicting states"
+        logging.info( "predicting states")
         probability, states = self.model.decode(self.matrix, lengths=self.chromosome_lengths)
-        print "Is convergent:", self.model.monitor_.converged
-        print "Score:", self.model.score(self.matrix, self.chromosome_lengths)
-        print "Probability:", probability
-        print "Transmat matrix:", self.model.transmat_
-        print "Means:", self.model.means_
-        print "Covars:", self.model.covars_
+        logging.info("Is convergent:" + str(self.model.monitor_.converged))
         return states
 
     def save_states_to_file(self, states, prefix=''):
@@ -142,3 +137,13 @@ class Data:
                 output.write('\t'.join([chromosome_name, str(start), str(self.window_size*chromosome_length)]))
                 output.write('\n')
             output.close()
+
+    def write_stats_to_file(self, prefix):
+        output = open(prefix + "_stats.txt", "w")
+        output.write("Score:" + str(self.model.score(self.matrix, self.chromosome_lengths)) + '\n')
+        #output.write("Probability:" + str(probability) + '\n')
+        output.write("Transmat matrix:" + str(self.model.transmat_) + '\n')
+        output.write("Means:" + str(self.model.means_) + '\n')
+        output.write("Covars:" + str(self.model.covars_) + '\n')
+        output.close()
+ 
