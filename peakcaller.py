@@ -39,6 +39,7 @@ def main():
     states = data.predict_states()
     data.save_states_to_file(states, arguments.output_prefix)
     data.write_stats_to_file(arguments.output_prefix)
+    data.save_peaks_to_file(arguments.output_prefix)
     logging.info("...done.")
 
 if __name__=='__main__':

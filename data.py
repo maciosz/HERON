@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import subprocess
 import numpy
 import warnings
 import logging
@@ -137,6 +138,17 @@ class Data:
                 output.write('\t'.join([chromosome_name, str(start), str(self.window_size*chromosome_length)]))
                 output.write('\n')
             output.close()
+
+    def which_state_is_peaks(self):
+        return self.model.means_.mean(1).argmax()
+
+    def save_peaks_to_file(self, prefix):
+        which_state = self.which_state_is_peaks()
+        infile = prefix + "_state_" + str(which_state) + ".bed"
+        outfile = prefix + "_peaks.bed"
+        subprocess.call(["cp", infile, outfile])
+        
+        
 
     def write_stats_to_file(self, prefix):
         output = open(prefix + "_stats.txt", "w")
