@@ -99,7 +99,7 @@ class Data:
         logging.info("fitting model")
         self.model.fit(self.matrix, lengths=self.chromosome_lengths)
         logging.info( "predicting states")
-        probability, states = self.model.decode(self.matrix, lengths=self.chromosome_lengths)
+        self.probability, states = self.model.decode(self.matrix, lengths=self.chromosome_lengths)
         logging.info("Is convergent:" + str(self.model.monitor_.converged))
         return states
 
@@ -148,12 +148,11 @@ class Data:
         outfile = prefix + "_peaks.bed"
         subprocess.call(["cp", infile, outfile])
         
-        
 
     def write_stats_to_file(self, prefix):
         output = open(prefix + "_stats.txt", "w")
         output.write("Score:" + str(self.model.score(self.matrix, self.chromosome_lengths)) + '\n')
-        #output.write("Probability:" + str(probability) + '\n')
+        output.write("Probability:" + str(self.probability) + '\n')
         output.write("Transmat matrix:" + str(self.model.transmat_) + '\n')
         output.write("Means:" + str(self.model.means_) + '\n')
         output.write("Covars:" + str(self.model.covars_) + '\n')
