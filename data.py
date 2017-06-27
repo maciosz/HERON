@@ -23,7 +23,7 @@ class Data:
         self.chromosome_names = []
 
     def add_data_from_bedgraph(self, filename):
-        logging.info("reading file" + filename)
+        logging.info("reading file " + filename)
         bedgraph = open(filename)
         chromosome_lengths = []
         chromosome_names = []
@@ -75,13 +75,13 @@ class Data:
             length - summaric length of the peaks in the window
             mean_length - mean length of the peaks in the window
                 (? is this really needed?)
-            sum_score - sum score of the peaks
+            sum_score - summaric score of the peaks
             mean_score - calculate average score of the peaks
         proportionally:
             (stupid name, think of sth else)
             applies to modes number, sum_score and mean_score;
             if a peak overlaps window partially,
-            count it's score/presence multiplied but the proper fraction
+            count it's score/presence multiplied by the proper fraction
                 (there is a discussion in the todo file about what "proper" means)
         """
         logging.info("reading file" + filename)
@@ -100,7 +100,7 @@ class Data:
         self.model.fit(self.matrix, lengths=self.chromosome_lengths)
         logging.info( "predicting states")
         self.probability, states = self.model.decode(self.matrix, lengths=self.chromosome_lengths)
-        logging.info("Is convergent:" + str(self.model.monitor_.converged))
+        logging.info("Is convergent: " + str(self.model.monitor_.converged))
         return states
 
     def save_states_to_file(self, states, prefix=''):
@@ -109,7 +109,7 @@ class Data:
             output.write(str(state))
             output.write('\n')
         output.close()
-        for state_being_saved in range(self.number_of_states):
+        for state_being_saved in xrange(self.number_of_states):
             counter = 0
             last_state = 'last_state'
             chromosome_index = 0

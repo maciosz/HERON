@@ -12,10 +12,11 @@ possibly with
 -o - prefix to output files
 
 Current output:
- generates file '[prefix]_states' with, well, states
+ generates file '[prefix]_all_states.txt' with, well, states
  can be pasted with windows.bed, awked and used as bed with states
  ...and now also ready files [prefix]_state_[x].bed
- Also, generates [prefix].log with log messages.
+ Also, generates [prefix].log with log messages
+ and [prefix]_stats.txt with some statistics.
  Checks which state has the highest mean coverage over samples,
  assumes it denotes peaks and copies file [prefix]_state_x.bed to [prefix]_peaks.bed.
 

@@ -7,7 +7,7 @@ from data import Data
 def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', dest='infiles', action='store', type=str, nargs='+',
-                        help='input files (currently only bedgraph format is allowed')
+                        help='input files (currently only bedgraph format is allowed)')
     parser.add_argument('-s', dest='number_of_states', action='store', type=int, default=3,
                         help='number of states (default: 3)')
     parser.add_argument('-o', dest='output_prefix', action='store', type=str,
