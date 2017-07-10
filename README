@@ -2,6 +2,12 @@ Find peaks using HMM from hmmlearn.
 
 Preliminary test version of beta version.
 
+The program attempts to identify sites of enrichment
+ in the signal from NGS data;
+ it takes coverages of mapped reads as an input
+ and returns bed file with coordinates of peaks,
+ i.e. sites of presumed enrichment.
+
 Current usage:
 
 ./peakcaller.py -i sample1.bedgraph sample2.bedgraph ...
@@ -14,6 +20,7 @@ possibly with
 Current output:
  generates file '[prefix]_all_states.txt' with, well, states
  can be pasted with windows.bed, awked and used as bed with states
+ (do I still need this file?)
  ...and now also ready files [prefix]_state_[x].bed
  Also, generates [prefix].log with log messages
  and [prefix]_stats.txt with some statistics.

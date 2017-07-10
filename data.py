@@ -14,7 +14,7 @@ class Data:
         self.window_size = window_size
         self.number_of_states = number_of_states
         self.model = hmm.GaussianHMM(number_of_states,
-                                    covariance_type='spherical',
+                                    covariance_type='diag',
                                     n_iter=1000, tol=0.000005,
                                     verbose=True)
         self.chromosome_lengths = []
@@ -34,6 +34,7 @@ class Data:
         no_of_windows_in_current_chromosome = 1
         start, end = int(start), int(end)
         self.windows_size = end-start
+        possibly_unfixed_resolution = False
         if start != 0:
             tmp = 0
             while tmp < start:
@@ -45,12 +46,13 @@ class Data:
         self.matrix[-1].append(int(value))
         for line in bedgraph:
             chromosome, start, end, value = line.strip().split()
-            #if int(end) - int(start) != self.window_size:
-            #    sys.exit("niestala rozdzielczosc!")
-                # tu powinien byc error
-                # tylko ze to sie sypie na koncu chromosomu
+            if chromosome == last_chromosome and possibly_unfixed_resolution:
+                sys.exit("Unfixed resolution around coordinates " + chromosome + ' ' + str(start) + ' ' + str(end))
+            if int(end) - int(start) != self.window_size:
+                possibly_unfixed_resolution = True
             self.matrix[-1].append(int(value))
             if chromosome != last_chromosome:
+                possibly_wrong_resolution = False
                 chromosome_lengths.append(no_of_windows_in_current_chromosome)
                 chromosome_names.append(chromosome)
                 no_of_windows_in_current_chromosome = 0
@@ -66,6 +68,10 @@ class Data:
             sys.exit('chromosome names between samples don\'t match')
         if sum(self.chromosome_lengths) != len(self.matrix[0]):
             sys.exit("sth\'s wrong with calculating chromosome lengths:" + str(sum(self.chromosome_lengths)) + ' ' + str(len(self.matrix[0])))
+            # that would be a weird bug. Did it ever happen?
+            # from the fact that I've written this checking I assume it did
+            # maybe it would be a good idea to make a method check()
+            # that would check if the data seems correct and consistent
 
     def add_data_from_bed(self, filename, mode='binary', proportionally=True):
         """
@@ -151,10 +157,10 @@ class Data:
 
     def write_stats_to_file(self, prefix):
         output = open(prefix + "_stats.txt", "w")
-        output.write("Score:" + str(self.model.score(self.matrix, self.chromosome_lengths)) + '\n')
-        output.write("Probability:" + str(self.probability) + '\n')
-        output.write("Transmat matrix:" + str(self.model.transmat_) + '\n')
-        output.write("Means:" + str(self.model.means_) + '\n')
-        output.write("Covars:" + str(self.model.covars_) + '\n')
+        output.write("Score: " + str(self.model.score(self.matrix, self.chromosome_lengths)) + '\n')
+        output.write("Probability: " + str(self.probability) + '\n')
+        output.write("Transmat matrix: \n" + str(self.model.transmat_) + '\n')
+        output.write("Means: \n" + str(self.model.means_) + '\n')
+        output.write("Covars \n:" + str(self.model.covars_) + '\n')
         output.close()
  

@@ -7,6 +7,8 @@ def test_readling_bedgraph():
     # assert len(bedgraph.lines) == 100
     assert 0 == 0
 
+# testy takie, wow
+
 """    
 def test_peak_calling():
     data = Data()
