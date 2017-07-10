@@ -52,7 +52,7 @@ class Data:
                 possibly_unfixed_resolution = True
             self.matrix[-1].append(int(value))
             if chromosome != last_chromosome:
-                possibly_wrong_resolution = False
+                possibly_unfixed_resolution = False
                 chromosome_lengths.append(no_of_windows_in_current_chromosome)
                 chromosome_names.append(chromosome)
                 no_of_windows_in_current_chromosome = 0

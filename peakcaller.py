@@ -10,7 +10,7 @@ def parse_arguments():
                         help='input files (currently only bedgraph format is allowed)')
     parser.add_argument('-s', dest='number_of_states', action='store', type=int, default=3,
                         help='number of states (default: 3)')
-    parser.add_argument('-o', dest='output_prefix', action='store', type=str,
+    parser.add_argument('-o', dest='output_prefix', action='store', type=str, default='',
                         help='prefix to output files')
     parser.add_argument('-b', dest='bed_file', action='store', type=str,
                         help='optional bed file (currently not used)')
