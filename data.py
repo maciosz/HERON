@@ -21,6 +21,7 @@ class Data:
         # maybe number_of_windows_in_chromosomes?
         # technically its not a length here
         self.chromosome_names = []
+        self.chromosome_ends = []
 
     def add_data_from_bedgraph(self, filename):
         logging.info("reading file " + filename)
@@ -28,6 +29,7 @@ class Data:
         chromosome_lengths = []
         chromosome_names = []
         self.matrix.append([])
+        previous_end = 0
         chromosome, start, end, value = bedgraph.next().strip().split()
         last_chromosome = chromosome
         chromosome_names.append(chromosome)
@@ -52,13 +54,16 @@ class Data:
                 possibly_unfixed_resolution = True
             self.matrix[-1].append(int(value))
             if chromosome != last_chromosome:
+                self.chromosome_ends.append(previous_end)
                 possibly_unfixed_resolution = False
                 chromosome_lengths.append(no_of_windows_in_current_chromosome)
                 chromosome_names.append(chromosome)
                 no_of_windows_in_current_chromosome = 0
             no_of_windows_in_current_chromosome += 1
             last_chromosome = chromosome
+            previous_end = end
         chromosome_lengths.append(no_of_windows_in_current_chromosome)
+        self.chromosome_ends.append(end)
         if not self.chromosome_lengths:
             self.chromosome_lengths = chromosome_lengths
             self.chromosome_names = chromosome_names
@@ -68,6 +73,10 @@ class Data:
             sys.exit('chromosome names between samples don\'t match')
         if sum(self.chromosome_lengths) != len(self.matrix[0]):
             sys.exit("sth\'s wrong with calculating chromosome lengths:" + str(sum(self.chromosome_lengths)) + ' ' + str(len(self.matrix[0])))
+        print self.chromosome_ends
+        print self.chromosome_lengths
+        print self.chromosome_names
+        
             # that would be a weird bug. Did it ever happen?
             # from the fact that I've written this checking I assume it did
             # maybe it would be a good idea to make a method check()
@@ -125,7 +134,7 @@ class Data:
             for current_state in states:
                 if counter == chromosome_length:
                     if last_state == state_being_saved:
-                        output.write('\t'.join([chromosome_name, str(start), str(self.window_size*chromosome_length)]))
+                        output.write('\t'.join([chromosome_name, str(start), str(self.chromosome_ends[chromosome_index])]))
                         output.write('\n')
                     chromosome_index += 1
                     counter = 0
@@ -141,7 +150,7 @@ class Data:
                 counter += 1
                 last_state = current_state
             if current_state == state_being_saved:
-                output.write('\t'.join([chromosome_name, str(start), str(self.window_size*chromosome_length)]))
+                output.write('\t'.join([chromosome_name, str(start), str(self.chromosome_ends[chromosome_index])]))
                 output.write('\n')
             output.close()
 
