@@ -28,6 +28,7 @@ class Data:
         bedgraph = open(filename)
         chromosome_lengths = []
         chromosome_names = []
+        chromosome_ends = []
         self.matrix.append([])
         previous_end = 0
         chromosome, start, end, value = bedgraph.next().strip().split()
@@ -54,7 +55,7 @@ class Data:
                 possibly_unfixed_resolution = True
             self.matrix[-1].append(int(value))
             if chromosome != last_chromosome:
-                self.chromosome_ends.append(previous_end)
+                chromosome_ends.append(previous_end)
                 possibly_unfixed_resolution = False
                 chromosome_lengths.append(no_of_windows_in_current_chromosome)
                 chromosome_names.append(chromosome)
@@ -63,24 +64,23 @@ class Data:
             last_chromosome = chromosome
             previous_end = end
         chromosome_lengths.append(no_of_windows_in_current_chromosome)
-        self.chromosome_ends.append(end)
+        chromosome_ends.append(end)
         if not self.chromosome_lengths:
             self.chromosome_lengths = chromosome_lengths
             self.chromosome_names = chromosome_names
+            self.chromosome_ends = chromosome_ends
         elif self.chromosome_lengths != chromosome_lengths:
             sys.exit('chromosome lengths between samples don\'t match')
         elif self.chromosome_names != chromosome_names:
             sys.exit('chromosome names between samples don\'t match')
         if sum(self.chromosome_lengths) != len(self.matrix[0]):
             sys.exit("sth\'s wrong with calculating chromosome lengths:" + str(sum(self.chromosome_lengths)) + ' ' + str(len(self.matrix[0])))
-        print self.chromosome_ends
-        print self.chromosome_lengths
-        print self.chromosome_names
-        
             # that would be a weird bug. Did it ever happen?
             # from the fact that I've written this checking I assume it did
             # maybe it would be a good idea to make a method check()
             # that would check if the data seems correct and consistent
+        if self.chromosome_ends != chromosome_ends:
+            sys.exit('chromosome ends between samples don\'t match')
 
     def add_data_from_bed(self, filename, mode='binary', proportionally=True):
         """
