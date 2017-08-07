@@ -16,6 +16,7 @@ possibly with
 
 -s - number of states (default 3)
 -o - prefix to output files
+-v - level of logging
 
 Current output:
  generates file '[prefix]_all_states.txt' with, well, states
@@ -28,10 +29,14 @@ Current output:
  assumes it denotes peaks and copies file [prefix]_state_x.bed to [prefix]_peaks.bed.
 
 Warning.
-Assumes that bedgraphs have fixed resolution
- and starts with coordinate 0
+Assumes that bedgraphs 
+ start with coordinate 0
  (bedgraphs are indeed 0-relative,
  but technically they might start from something else)
  (ok, to be fair it will manage with bedgraphs that start with multiplication of resolution,
- like 200; it will just add missing windows.)
+ like 200; it will just add missing windows).
+ Requires bedgraphs to have fixed resolution,
+ exits otherwise.
+ When using multiple bedgraphs,
+ requires them to have identical coordinates.
 

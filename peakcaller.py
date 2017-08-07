@@ -1,8 +1,25 @@
 #!/usr/bin/env python
 
+import sys
 import logging
 import argparse
 from data import Data
+
+class StreamToLogger(object):
+    """
+    Fake file-like stream object that redirects writes to a logger instance.
+    source:
+    https://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/
+    """
+    def __init__(self, logger, log_level=logging.INFO):
+        self.logger = logger
+        self.log_level = log_level
+        self.linebuf = ''
+
+    def write(self, buf):
+        for line in buf.rstrip().splitlines():
+            self.logger.log(self.log_level, line.rstrip())
+
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -17,8 +34,9 @@ def parse_arguments():
     parser.add_argument('-m', dest='bed_mode', action='store', type=str, default='binary',
                         help='mode for reading in bed file, currently not used')
     parser.add_argument('-v', dest='verbosity', action='store', type=str, default='i',
-                        help='level of logging: c (critical), e (error), ' + 
-                            'w (warning), i (info), d (debug). ' +
+                        help=
+                            'level of logging: c (critical), e (error), ' 
+                            'w (warning), i (info), d (debug). '
                             'Defaults to i.')
     return parser.parse_args()
 
@@ -31,11 +49,20 @@ def main():
                       'i': logging.INFO,
                       'd': logging.DEBUG}
     logging_level = verbosity_dict[arguments.verbosity]
-    logging.basicConfig(filename=arguments.output_prefix + ".log",
+    log_name = arguments.output_prefix + ".log"
+    if log_name == '.log':
+        log_name = "log"
+    logging.basicConfig(filename=log_name,
                         filemode='w',
                         level=logging_level,
                         format='%(levelname)s\t%(asctime)s\t%(message)s',
                         datefmt="%d.%m.%Y %H:%M:%S")
+    stdout_logger = logging.getLogger('STDOUT')
+    sl = StreamToLogger(stdout_logger, logging.DEBUG)
+    sys.stdout = sl
+    stderr_logger = logging.getLogger('STDERR')
+    sl = StreamToLogger(stderr_logger, logging.ERROR)
+    sys.stderr = sl
     logging.info("Creating data structure...")
     data = Data(number_of_states=arguments.number_of_states)
     logging.info("Reading in data...")
