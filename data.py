@@ -2,9 +2,9 @@
 
 import sys
 import subprocess
-import numpy
 import warnings
 import logging
+import numpy
 from hmmlearn import hmm
 
 class Data:
@@ -14,9 +14,9 @@ class Data:
         self.window_size = window_size
         self.number_of_states = number_of_states
         self.model = hmm.GaussianHMM(number_of_states,
-                                    covariance_type='diag',
-                                    n_iter=1000, tol=0.000005,
-                                    verbose=True)
+                                     covariance_type='diag',
+                                     n_iter=1000, tol=0.000005,
+                                     verbose=True)
         self.chromosome_lengths = []
         # maybe number_of_windows_in_chromosomes?
         # technically its not a length here
@@ -50,7 +50,8 @@ class Data:
         for line in bedgraph:
             chromosome, start, end, value = line.strip().split()
             if chromosome == last_chromosome and possibly_unfixed_resolution:
-                sys.exit("Unfixed resolution around coordinates " + chromosome + ' ' + str(start) + ' ' + str(end))
+                sys.exit("Unfixed resolution around coordinates " +
+                         chromosome + ' ' + str(start) + ' ' + str(end))
             if int(end) - int(start) != self.window_size:
                 possibly_unfixed_resolution = True
             self.matrix[-1].append(int(value))
@@ -74,7 +75,8 @@ class Data:
         elif self.chromosome_names != chromosome_names:
             sys.exit('chromosome names between samples don\'t match')
         if sum(self.chromosome_lengths) != len(self.matrix[0]):
-            sys.exit("sth\'s wrong with calculating chromosome lengths:" + str(sum(self.chromosome_lengths)) + ' ' + str(len(self.matrix[0])))
+            sys.exit("sth\'s wrong with calculating chromosome lengths:" +
+                     str(sum(self.chromosome_lengths)) + ' ' + str(len(self.matrix[0])))
             # that would be a weird bug. Did it ever happen?
             # from the fact that I've written this checking I assume it did
             # maybe it would be a good idea to make a method check()
@@ -113,7 +115,7 @@ class Data:
         self.matrix = numpy.array(self.matrix).transpose()
         logging.info("fitting model")
         self.model.fit(self.matrix, lengths=self.chromosome_lengths)
-        logging.info( "predicting states")
+        logging.info("predicting states")
         self.probability, states = self.model.decode(self.matrix, lengths=self.chromosome_lengths)
         logging.info("Is convergent: " + str(self.model.monitor_.converged))
         return states
@@ -134,7 +136,9 @@ class Data:
             for current_state in states:
                 if counter == chromosome_length:
                     if last_state == state_being_saved:
-                        output.write('\t'.join([chromosome_name, str(start), str(self.chromosome_ends[chromosome_index])]))
+                        output.write('\t'.join([chromosome_name,
+                                                str(start),
+                                                str(self.chromosome_ends[chromosome_index])]))
                         output.write('\n')
                     chromosome_index += 1
                     counter = 0
@@ -150,7 +154,9 @@ class Data:
                 counter += 1
                 last_state = current_state
             if current_state == state_being_saved:
-                output.write('\t'.join([chromosome_name, str(start), str(self.chromosome_ends[chromosome_index])]))
+                output.write('\t'.join([chromosome_name,
+                                        str(start),
+                                        str(self.chromosome_ends[chromosome_index])]))
                 output.write('\n')
             output.close()
 
@@ -162,7 +168,6 @@ class Data:
         infile = prefix + "_state_" + str(which_state) + ".bed"
         outfile = prefix + "_peaks.bed"
         subprocess.call(["cp", infile, outfile])
-        
 
     def write_stats_to_file(self, prefix):
         output = open(prefix + "_stats.txt", "w")
@@ -172,4 +177,3 @@ class Data:
         output.write("Means: \n" + str(self.model.means_) + '\n')
         output.write("Covars \n:" + str(self.model.covars_) + '\n')
         output.close()
- 

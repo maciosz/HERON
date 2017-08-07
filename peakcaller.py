@@ -1,4 +1,4 @@
-#!/usr/bin/env python 
+#!/usr/bin/env python
 
 import logging
 import argparse
@@ -16,14 +16,24 @@ def parse_arguments():
                         help='optional bed file (currently not used)')
     parser.add_argument('-m', dest='bed_mode', action='store', type=str, default='binary',
                         help='mode for reading in bed file, currently not used')
+    parser.add_argument('-v', dest='verbosity', action='store', type=str, default='i',
+                        help='level of logging: c (critical), e (error), ' + 
+                            'w (warning), i (info), d (debug). ' +
+                            'Defaults to i.')
     return parser.parse_args()
 
 
 def main():
     arguments = parse_arguments()
+    verbosity_dict = {'c': logging.CRITICAL,
+                      'e': logging.ERROR,
+                      'w': logging.WARNING,
+                      'i': logging.INFO,
+                      'd': logging.DEBUG}
+    logging_level = verbosity_dict[arguments.verbosity]
     logging.basicConfig(filename=arguments.output_prefix + ".log",
                         filemode='w',
-                        level=logging.INFO,
+                        level=logging_level,
                         format='%(levelname)s\t%(asctime)s\t%(message)s',
                         datefmt="%d.%m.%Y %H:%M:%S")
     logging.info("Creating data structure...")
@@ -42,6 +52,6 @@ def main():
     data.save_peaks_to_file(arguments.output_prefix)
     logging.info("...done.")
 
-if __name__=='__main__':
+if __name__ == '__main__':
     main()
 
