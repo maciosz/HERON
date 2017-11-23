@@ -22,7 +22,7 @@ Current output:
  generates file '[prefix]_all_states.txt' with, well, states
  can be pasted with windows.bed, awked and used as bed with states
  (do I still need this file?)
- ...and now also ready files [prefix]_state_[x].bed
+ ...and now also ready files [prefix]_state_[x].bed.
  Also, generates [prefix].log with log messages
  and [prefix]_stats.txt with some statistics.
  Checks which state has the highest mean coverage over samples,

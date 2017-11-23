@@ -63,6 +63,7 @@ def main():
     stderr_logger = logging.getLogger('STDERR')
     sl = StreamToLogger(stderr_logger, logging.ERROR)
     sys.stderr = sl
+    logging.info("Command used: " + ' '.join(sys.argv))
     logging.info("Creating data structure...")
     data = Data(number_of_states=arguments.number_of_states)
     logging.info("Reading in data...")

@@ -2,7 +2,7 @@ from data import Data
 
 def test_readling_bedgraphs():
     data = Data()
-    for infile in ['sample1.bedgraph', 'sample2.bedgraph']:
+    for infile in ['1.bedgraph', '2.bedgraph']:
         data.add_data_from_bedgraph(infile)
     assert len(data.matrix) == 2
     assert len(data.matrix[0]) == 100

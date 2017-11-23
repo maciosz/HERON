@@ -17,6 +17,10 @@ class Data:
                                      covariance_type='diag',
                                      n_iter=1000, tol=0.000005,
                                      verbose=True)
+        #self.model = hmm.NegativeBinomialHMM(number_of_states,
+        #                                    n_iter=1000,
+        #                                    tol=0.00005,
+        #                                    verbose=True)
         self.chromosome_lengths = []
         # maybe number_of_windows_in_chromosomes?
         # technically its not a length here
@@ -161,7 +165,7 @@ class Data:
             output.close()
 
     def which_state_is_peaks(self):
-        return self.model.means_.mean(1).argmax()
+        return self.model.means_.mean(axis=1).argmax()
 
     def save_peaks_to_file(self, prefix):
         which_state = self.which_state_is_peaks()
