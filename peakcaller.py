@@ -29,6 +29,8 @@ def parse_arguments():
                         help='number of states (default: 3)')
     parser.add_argument('-o', dest='output_prefix', action='store', type=str, default='',
                         help='prefix to output files')
+    parser.add_argument('-d', dest='distribution', action='store', type=str, default='NB',
+                        help='distribution of emissions; "Gauss" or "NB" (default)')
     parser.add_argument('-b', dest='bed_file', action='store', type=str,
                         help='optional bed file (currently not used)')
     parser.add_argument('-m', dest='bed_mode', action='store', type=str, default='binary',
@@ -65,7 +67,7 @@ def main():
     sys.stderr = sl
     logging.info("Command used: " + ' '.join(sys.argv))
     logging.info("Creating data structure...")
-    data = Data(number_of_states=arguments.number_of_states)
+    data = Data(number_of_states=arguments.number_of_states, distr=arguments.distribution)
     logging.info("Reading in data...")
     for infile in arguments.infiles:
         data.add_data_from_bedgraph(infile)

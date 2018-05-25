@@ -9,18 +9,20 @@ from hmmlearn import hmm
 
 class Data:
 
-    def __init__(self, window_size=100, number_of_states=3):
+    def __init__(self, window_size=100, number_of_states=3, distr = "NB"):
         self.matrix = []
         self.window_size = window_size
         self.number_of_states = number_of_states
-        self.model = hmm.GaussianHMM(number_of_states,
-                                     covariance_type='diag',
-                                     n_iter=1000, tol=0.000005,
-                                     verbose=True)
-        #self.model = hmm.NegativeBinomialHMM(number_of_states,
-        #                                    n_iter=1000,
-        #                                    tol=0.00005,
-        #                                    verbose=True)
+        if distr == "Gauss":
+            self.model = hmm.GaussianHMM(number_of_states,
+                                         covariance_type='diag',
+                                         n_iter=1000, tol=0.000005,
+                                         verbose=True)
+        elif distr == "NB":
+            self.model = hmm.NegativeBinomialHMM(number_of_states,
+                                                n_iter=1000,
+                                                tol=0.00005,
+                                                verbose=True)
         self.chromosome_lengths = []
         # maybe number_of_windows_in_chromosomes?
         # technically its not a length here
@@ -40,7 +42,7 @@ class Data:
         chromosome_names.append(chromosome)
         no_of_windows_in_current_chromosome = 1
         start, end = int(start), int(end)
-        self.windows_size = end-start
+        self.window_size = end-start
         possibly_unfixed_resolution = False
         if start != 0:
             tmp = 0
@@ -58,7 +60,7 @@ class Data:
                          chromosome + ' ' + str(start) + ' ' + str(end))
             if int(end) - int(start) != self.window_size:
                 possibly_unfixed_resolution = True
-            self.matrix[-1].append(int(value))
+            self.matrix[-1].append(float(value))
             if chromosome != last_chromosome:
                 chromosome_ends.append(previous_end)
                 possibly_unfixed_resolution = False
@@ -179,5 +181,5 @@ class Data:
         output.write("Probability: " + str(self.probability) + '\n')
         output.write("Transmat matrix: \n" + str(self.model.transmat_) + '\n')
         output.write("Means: \n" + str(self.model.means_) + '\n')
-        output.write("Covars \n:" + str(self.model.covars_) + '\n')
+        output.write("Covars: \n" + str(self.model.covars_) + '\n')
         output.close()
