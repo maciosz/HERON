@@ -17,6 +17,7 @@ possibly with
 -s - number of states (default 3)
 -o - prefix to output files
 -v - level of logging
+-d - distribution of emissions (Gauss / NB; defaults to NB)
 
 Current output:
  generates file '[prefix]_all_states.txt' with, well, states
