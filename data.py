@@ -44,6 +44,7 @@ class Data:
         start, end = int(start), int(end)
         self.window_size = end-start
         possibly_unfixed_resolution = False
+        floats = False
         if start != 0:
             tmp = 0
             while tmp < start:
@@ -60,7 +61,11 @@ class Data:
                          chromosome + ' ' + str(start) + ' ' + str(end))
             if int(end) - int(start) != self.window_size:
                 possibly_unfixed_resolution = True
-            self.matrix[-1].append(float(value))
+            if (int(value) != float(value) and !floats:
+                logging.debug("Warning, your values contain floats. I'm converting them to ints")
+                # TODO: i don't have to if distribution = Gauss, should be parametrised
+                floats = True
+            self.matrix[-1].append(int(value))
             if chromosome != last_chromosome:
                 chromosome_ends.append(previous_end)
                 possibly_unfixed_resolution = False
