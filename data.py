@@ -53,7 +53,7 @@ class Data:
             # to nie zalatwia przesuniecia okien
             # w sensie jak bedgraph zaczyna sie od 50
             # to tu bedzie to interpretowane jako zaczecie od 100
-        self.matrix[-1].append(int(value))
+        self.matrix[-1].append(int(float(value)))
         for line in bedgraph:
             chromosome, start, end, value = line.strip().split()
             if chromosome == last_chromosome and possibly_unfixed_resolution:
@@ -61,11 +61,11 @@ class Data:
                          chromosome + ' ' + str(start) + ' ' + str(end))
             if int(end) - int(start) != self.window_size:
                 possibly_unfixed_resolution = True
-            if (int(value) != float(value) and !floats:
+            if not floats and int(float(value)) != float(value):
                 logging.debug("Warning, your values contain floats. I'm converting them to ints")
-                # TODO: i don't have to if distribution = Gauss, should be parametrised
+                # TODO: i don't have to do it if distribution = Gauss, should be parametrised
                 floats = True
-            self.matrix[-1].append(int(value))
+            self.matrix[-1].append(int(float(value)))
             if chromosome != last_chromosome:
                 chromosome_ends.append(previous_end)
                 possibly_unfixed_resolution = False
