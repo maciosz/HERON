@@ -20,10 +20,12 @@ possibly with
 -d - distribution of emissions (Gauss / NB; defaults to NB)
 
 Current output:
- generates file '[prefix]_all_states.txt' with, well, states
- can be pasted with windows.bed, awked and used as bed with states
- (do I still need this file?)
- ...and now also ready files [prefix]_state_[x].bed.
+ generates
+ # file '[prefix]_all_states.txt' with, well, states
+ # can be pasted with windows.bed, awked and used as bed with states
+ # (do I still need this file?) (I guess not, but just in case I only comment it, not remove yet)
+ # ...and now also 
+ ready files [prefix]_state_[x].bed.
  Also, generates [prefix].log with log messages
  and [prefix]_stats.txt with some statistics.
  Checks which state has the highest mean coverage over samples,
@@ -39,5 +41,6 @@ Assumes that bedgraphs
  Requires bedgraphs to have fixed resolution,
  exits otherwise.
  When using multiple bedgraphs,
- requires them to have identical coordinates.
-
+ requires them to have identical coordinates;
+ exits otherwise.
+ If there are some floats in the bedgraph, program will convert them to integers.

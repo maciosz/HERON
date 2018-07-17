@@ -23,23 +23,30 @@ class StreamToLogger(object):
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', dest='infiles', action='store', type=str, nargs='+',
+    parser.add_argument('-i', dest='infiles',
+                        action='store', type=str, nargs='+',
                         help='input files (currently only bedgraph format is allowed)')
-    parser.add_argument('-s', dest='number_of_states', action='store', type=int, default=3,
+    parser.add_argument('-s', dest='number_of_states',
+                        action='store', type=int, default=3,
                         help='number of states (default: 3)')
-    parser.add_argument('-o', dest='output_prefix', action='store', type=str, default='',
+    parser.add_argument('-o', dest='output_prefix',
+                        action='store', type=str, default='',
                         help='prefix to output files')
-    parser.add_argument('-d', dest='distribution', action='store', type=str, default='NB',
+    parser.add_argument('-d', dest='distribution',
+                        action='store', type=str, default='NB',
                         help='distribution of emissions; "Gauss" or "NB" (default)')
-    parser.add_argument('-b', dest='bed_file', action='store', type=str,
+    parser.add_argument('-b', dest='bed_file',
+                        action='store', type=str,
                         help='optional bed file (currently not used)')
-    parser.add_argument('-m', dest='bed_mode', action='store', type=str, default='binary',
+    parser.add_argument('-m', dest='bed_mode',
+                        action='store', type=str, default='binary',
                         help='mode for reading in bed file, currently not used')
-    parser.add_argument('-v', dest='verbosity', action='store', type=str, default='i',
+    parser.add_argument('-v', dest='verbosity',
+                        action='store', type=str, default='i',
                         help=
-                            'level of logging: c (critical), e (error), ' 
-                            'w (warning), i (info), d (debug). '
-                            'Defaults to i.')
+                        'level of logging: c (critical), e (error), '
+                        'w (warning), i (info), d (debug). '
+                        'Defaults to i.')
     return parser.parse_args()
 
 
@@ -60,12 +67,12 @@ def main():
                         format='%(levelname)s\t%(asctime)s\t%(message)s',
                         datefmt="%d.%m.%Y %H:%M:%S")
     stdout_logger = logging.getLogger('STDOUT')
-    sl = StreamToLogger(stdout_logger, logging.DEBUG)
-    sys.stdout = sl
+    stream_to_logger = StreamToLogger(stdout_logger, logging.DEBUG)
+    sys.stdout = stream_to_logger
     stderr_logger = logging.getLogger('STDERR')
-    sl = StreamToLogger(stderr_logger, logging.ERROR)
-    sys.stderr = sl
-    logging.info("Command used: " + ' '.join(sys.argv))
+    stream_to_logger = StreamToLogger(stderr_logger, logging.ERROR)
+    sys.stderr = stream_to_logger
+    logging.info("Command used: %s", ' '.join(sys.argv))
     logging.info("Creating data structure...")
     data = Data(number_of_states=arguments.number_of_states, distr=arguments.distribution)
     logging.info("Reading in data...")
@@ -73,8 +80,8 @@ def main():
         data.add_data_from_bedgraph(infile)
     if arguments.bed_file:
         data.add_data_from_bed(arguments.bed_file, arguments.bed_mode)
-    logging.debug("Chromosome names: " + str(data.chromosome_names))
-    logging.debug("Chromosome lengths: " + str(data.chromosome_lengths))
+    logging.debug("Chromosome names: %s", str(data.chromosome_names))
+    logging.debug("Chromosome lengths: %s", str(data.chromosome_lengths))
     logging.info("Data ready to analyse. Finding peaks")
     states = data.predict_states()
     data.save_states_to_file(states, arguments.output_prefix)
@@ -84,4 +91,3 @@ def main():
 
 if __name__ == '__main__':
     main()
-

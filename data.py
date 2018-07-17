@@ -20,9 +20,9 @@ class Data:
                                          verbose=True)
         elif distr == "NB":
             self.model = hmm.NegativeBinomialHMM(number_of_states,
-                                                n_iter=1000,
-                                                tol=0.00005,
-                                                verbose=True)
+                                                 n_iter=1000,
+                                                 tol=0.00005,
+                                                 verbose=True)
         self.chromosome_lengths = []
         # maybe number_of_windows_in_chromosomes?
         # technically its not a length here
@@ -30,7 +30,7 @@ class Data:
         self.chromosome_ends = []
 
     def add_data_from_bedgraph(self, filename):
-        logging.info("reading file " + filename)
+        logging.info("reading file %s", filename)
         bedgraph = open(filename)
         chromosome_lengths = []
         chromosome_names = []
@@ -112,7 +112,7 @@ class Data:
             count it's score/presence multiplied by the proper fraction
                 (there is a discussion in the todo file about what "proper" means)
         """
-        logging.info("reading file" + filename)
+        logging.info("reading file %s", filename)
         bed_file = open(filename)
         for line in bed_file:
             line = line.strip().split()
@@ -128,15 +128,15 @@ class Data:
         self.model.fit(self.matrix, lengths=self.chromosome_lengths)
         logging.info("predicting states")
         self.probability, states = self.model.decode(self.matrix, lengths=self.chromosome_lengths)
-        logging.info("Is convergent: " + str(self.model.monitor_.converged))
+        logging.info("Is convergent: %s", str(self.model.monitor_.converged))
         return states
 
     def save_states_to_file(self, states, prefix=''):
-        output = open(prefix + "_all_states.txt", 'w')
-        for state in states:
-            output.write(str(state))
-            output.write('\n')
-        output.close()
+        #output = open(prefix + "_all_states.txt", 'w')
+        #for state in states:
+        #    output.write(str(state))
+        #    output.write('\n')
+        #output.close()
         for state_being_saved in xrange(self.number_of_states):
             counter = 0
             last_state = 'last_state'
