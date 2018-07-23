@@ -34,15 +34,17 @@ class Data:
         Set data above the threshold to the mean.
         That's just a sketch of what to do with outliers.
         """
-        means = map(numpy.mean, self.matrix)
+        means = []
+        for line in self.matrix:
+            mean = numpy.mean(filter(lambda x: x <= 1000, line))
+            means.append(mean)
+        #means = map(numpy.mean, filter(lambda x: x <= 1000, self.matrix))
         print "srednie:", means
         for which_line, line in enumerate(self.matrix):
             for position, value in enumerate(line):
                 if value > threshold:
                     print "podmieniam", value, "na", means[which_line]
                     self.matrix[which_line][position] = means[which_line]
-                else:
-                    print "everything fine!"
            
 
 
