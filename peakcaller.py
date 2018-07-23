@@ -80,6 +80,8 @@ def main():
         data.add_data_from_bedgraph(infile)
     if arguments.bed_file:
         data.add_data_from_bed(arguments.bed_file, arguments.bed_mode)
+    logging.info("Filtering data (removing outliers)")
+    data.filter_data()
     logging.debug("Chromosome names: %s", str(data.chromosome_names))
     logging.debug("Chromosome lengths: %s", str(data.chromosome_lengths))
     logging.info("Data ready to analyse. Finding peaks")

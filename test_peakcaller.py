@@ -1,7 +1,7 @@
 import peakcaller
 from data import Data
 
-def test_readling_bedgraph():
+def test_reading_bedgraph():
     # bedgraph = peakcaller.read_bedgraph_file('sample1.bedgraph')
     # assert isinstance(bedgraph, coverage.Coverage)
     # assert len(bedgraph.lines) == 100

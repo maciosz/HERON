@@ -29,6 +29,23 @@ class Data:
         self.chromosome_names = []
         self.chromosome_ends = []
 
+    def filter_data(self, threshold = 1000):
+        """
+        Set data above the threshold to the mean.
+        That's just a sketch of what to do with outliers.
+        """
+        means = map(numpy.mean, self.matrix)
+        print "srednie:", means
+        for which_line, line in enumerate(self.matrix):
+            for position, value in enumerate(line):
+                if value > threshold:
+                    print "podmieniam", value, "na", means[which_line]
+                    self.matrix[which_line][position] = means[which_line]
+                else:
+                    print "everything fine!"
+           
+
+
     def add_data_from_bedgraph(self, filename):
         logging.info("reading file %s", filename)
         bedgraph = open(filename)
@@ -119,6 +136,8 @@ class Data:
             chromosome, start, end, name, score, strand = line
             # it should check if it's not a simplified bed with less columns
 
+
+
     def predict_states(self):
         logging.info("predicting states, stay tuned")
         warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -172,6 +191,7 @@ class Data:
             output.close()
 
     def which_state_is_peaks(self):
+        # TODO: check whether mean is the highest among all samples
         return self.model.means_.mean(axis=1).argmax()
 
     def save_peaks_to_file(self, prefix):
@@ -184,7 +204,8 @@ class Data:
         output = open(prefix + "_stats.txt", "w")
         output.write("Score: " + str(self.model.score(self.matrix, self.chromosome_lengths)) + '\n')
         output.write("Probability: " + str(self.probability) + '\n')
-        output.write("Transmat matrix: \n" + str(self.model.transmat_) + '\n')
+        output.write("Transition matrix: \n" + str(self.model.transmat_) + '\n')
         output.write("Means: \n" + str(self.model.means_) + '\n')
         output.write("Covars: \n" + str(self.model.covars_) + '\n')
+        output.write("Mean length: TODO\n")
         output.close()
