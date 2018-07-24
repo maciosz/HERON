@@ -18,6 +18,8 @@ possibly with
 -o - prefix to output files
 -v - level of logging
 -d - distribution of emissions (Gauss / NB; defaults to NB)
+-t - threshold for outliers; windows higher than that will be considered outliers
+     and replaced with mean value from the whole genome (excluding outliers)
 
 Current output:
  generates

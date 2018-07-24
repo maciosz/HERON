@@ -42,7 +42,7 @@ def parse_arguments():
                         action='store', type=str, default='binary',
                         help='mode for reading in bed file, currently not used')
     parser.add_argument('-t', dest='threshold',
-                        action='store', type=int, default=1000,
+                        action='store', type=int, default=0,
                         help='windows above this value will be reduced to the mean value')
     parser.add_argument('-v', dest='verbosity',
                         action='store', type=str, default='i',
@@ -83,8 +83,9 @@ def main():
         data.add_data_from_bedgraph(infile)
     if arguments.bed_file:
         data.add_data_from_bed(arguments.bed_file, arguments.bed_mode)
-    logging.info("Filtering data (removing outliers)")
-    data.filter_data(arguments.threshold)
+    if arguments.threshold != 0:
+        logging.info("Filtering data (removing outliers)")
+        data.filter_data(arguments.threshold)
     logging.debug("Chromosome names: %s", str(data.chromosome_names))
     logging.debug("Chromosome lengths: %s", str(data.chromosome_lengths))
     logging.info("Data ready to analyse. Finding peaks")

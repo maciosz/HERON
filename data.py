@@ -29,7 +29,7 @@ class Data:
         self.chromosome_names = []
         self.chromosome_ends = []
 
-    def filter_data(self, threshold = 1000):
+    def filter_data(self, threshold):
         """
         Set data above the threshold to the mean.
         That's just a sketch of what to do with outliers.
@@ -40,11 +40,14 @@ class Data:
             means.append(mean)
         #means = map(numpy.mean, filter(lambda x: x <= 1000, self.matrix))
         print "srednie:", means
+        counter = 0
         for which_line, line in enumerate(self.matrix):
             for position, value in enumerate(line):
                 if value > threshold:
                     print "podmieniam", value, "na", means[which_line]
                     self.matrix[which_line][position] = means[which_line]
+                    counter += 1
+        logging.info("I've reduced values in %i windows to mean value.", counter)
            
 
 
