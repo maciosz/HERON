@@ -19,7 +19,9 @@ possibly with
 -v - level of logging
 -d - distribution of emissions (Gauss / NB; defaults to NB)
 -t - threshold for outliers; windows higher than that will be considered outliers
-     and replaced with mean value from the whole genome (excluding outliers)
+     and replaced with mean value from the whole genome (excluding outliers);
+    0 (default) means no threshold
+--dont-save - do not save one of the states as peaks
 
 Current output:
  generates
@@ -32,6 +34,7 @@ Current output:
  and [prefix]_stats.txt with some statistics.
  Checks which state has the highest mean coverage over samples,
  assumes it denotes peaks and copies file [prefix]_state_x.bed to [prefix]_peaks.bed.
+ Unless you add --dont-save argument, then it doesn't.
 
 Warning.
 Assumes that bedgraphs 

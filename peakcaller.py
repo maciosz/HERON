@@ -105,6 +105,4 @@ def main():
     logging.info("...done.")
 
 if __name__ == '__main__':
-    arguments = parse_arguments()
-    print arguments.save_peaks
-    #main()
+    main()
