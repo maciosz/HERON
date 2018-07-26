@@ -9,9 +9,11 @@ from hmmlearn import hmm
 
 class Data:
 
-    def __init__(self, window_size=100, number_of_states=3, distr = "NB"):
+    def __init__(self, number_of_states, distr):
+        # why do I need window_size here?
+        # in the arguments, specifically
         self.matrix = []
-        self.window_size = window_size
+        self.window_size = 100 #window_size
         self.number_of_states = number_of_states
         if distr == "Gauss":
             self.model = hmm.GaussianHMM(number_of_states,

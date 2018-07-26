@@ -43,13 +43,21 @@ def parse_arguments():
                         help='mode for reading in bed file, currently not used')
     parser.add_argument('-t', dest='threshold',
                         action='store', type=int, default=0,
-                        help='windows above this value will be reduced to the mean value')
+                        help='windows above this value will be considered outliers'
+                        ' and reduced to the mean value;'
+                        ' 0 (default) means no threshold')
     parser.add_argument('-v', dest='verbosity',
                         action='store', type=str, default='i',
                         help=
                         'level of logging: c (critical), e (error), '
                         'w (warning), i (info), d (debug). '
                         'Defaults to i.')
+    parser.add_argument('--dont-save', dest='save_peaks',
+                        action='store_false',
+                        help=
+                        'Should the state with highest mean be saved as peaks?'
+                        ' By default it will.'
+                        ' If you specify this, it won\'t.')
     return parser.parse_args()
 
 
@@ -92,8 +100,11 @@ def main():
     states = data.predict_states()
     data.save_states_to_file(states, arguments.output_prefix)
     data.write_stats_to_file(arguments.output_prefix)
-    data.save_peaks_to_file(arguments.output_prefix)
+    if arguments.save_peaks:
+        data.save_peaks_to_file(arguments.output_prefix)
     logging.info("...done.")
 
 if __name__ == '__main__':
-    main()
+    arguments = parse_arguments()
+    print arguments.save_peaks
+    #main()
