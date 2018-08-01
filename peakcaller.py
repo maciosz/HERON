@@ -44,7 +44,7 @@ def parse_arguments():
     parser.add_argument('-t', dest='threshold',
                         action='store', type=int, default=0,
                         help='windows above this value will be considered outliers'
-                        ' and reduced to the mean value;'
+                        ' and reduced to the median value;'
                         ' 0 (default) means no threshold')
     parser.add_argument('-v', dest='verbosity',
                         action='store', type=str, default='i',

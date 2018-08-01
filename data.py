@@ -33,23 +33,23 @@ class Data:
 
     def filter_data(self, threshold):
         """
-        Set data above the threshold to the mean.
+        Set data above the threshold to the median.
         That's just a sketch of what to do with outliers.
         """
-        means = []
+        medians = []
         for line in self.matrix:
-            mean = numpy.mean(filter(lambda x: x <= 1000, line))
-            means.append(mean)
+            median = numpy.median(filter(lambda x: x <= 1000, line))
+            medians.append(median)
         #means = map(numpy.mean, filter(lambda x: x <= 1000, self.matrix))
-        print "srednie:", means
+        print "mediany:", medians
         counter = 0
         for which_line, line in enumerate(self.matrix):
             for position, value in enumerate(line):
                 if value > threshold:
-                    print "podmieniam", value, "na", means[which_line]
-                    self.matrix[which_line][position] = means[which_line]
+                    print "podmieniam", value, "na", median[which_line]
+                    self.matrix[which_line][position] = median[which_line]
                     counter += 1
-        logging.info("I've reduced values in %i windows to mean value.", counter)
+        logging.info("I've reduced values in %i windows to median value.", counter)
            
 
 
@@ -86,7 +86,7 @@ class Data:
             if int(end) - int(start) != self.window_size:
                 possibly_unfixed_resolution = True
             if not floats and int(float(value)) != float(value):
-                logging.debug("Warning, your values contain floats. I'm converting them to ints")
+                logging.info("Warning, your values contain floats. I'm converting them to ints")
                 # TODO: i don't have to do it if distribution = Gauss, should be parametrised
                 floats = True
             self.matrix[-1].append(int(float(value)))
