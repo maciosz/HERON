@@ -43,6 +43,7 @@ Assumes that bedgraphs
  but technically they might start from something else)
  (ok, to be fair it will manage with bedgraphs that start with multiplication of resolution,
  like 200; it will just add missing windows).
+ (it won't now, because it would have to assume some resolution. I removed that useless feature.)
  Requires bedgraphs to have fixed resolution,
  exits otherwise.
  When using multiple bedgraphs,

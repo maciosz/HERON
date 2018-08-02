@@ -8,6 +8,10 @@ import numpy
 from hmmlearn import hmm
 
 class Data:
+    """
+    Reading, storing and writing data
+    from coverages and intervals.
+    """
 
     def __init__(self, number_of_states, distr):
         # why do I need window_size here?
@@ -69,14 +73,6 @@ class Data:
         self.window_size = end-start
         possibly_unfixed_resolution = False
         floats = False
-        if start != 0:
-            tmp = 0
-            while tmp < start:
-                self.matrix[-1].append(0)
-                tmp += self.window_size
-            # to nie zalatwia przesuniecia okien
-            # w sensie jak bedgraph zaczyna sie od 50
-            # to tu bedzie to interpretowane jako zaczecie od 100
         self.matrix[-1].append(int(float(value)))
         for line in bedgraph:
             chromosome, start, end, value = line.strip().split()
@@ -118,33 +114,7 @@ class Data:
             # that would check if the data seems correct and consistent
         if self.chromosome_ends != chromosome_ends:
             sys.exit('chromosome ends between samples don\'t match')
-
-    def add_data_from_bed(self, filename, mode='binary', proportionally=True):
-        """
-        mode:
-            binary - 1 if there is any peak in the window, 0 otherwise
-            number - count peaks in the window
-            length - summaric length of the peaks in the window
-            mean_length - mean length of the peaks in the window
-                (? is this really needed?)
-            sum_score - summaric score of the peaks
-            mean_score - calculate average score of the peaks
-        proportionally:
-            (stupid name, think of sth else)
-            applies to modes number, sum_score and mean_score;
-            if a peak overlaps window partially,
-            count it's score/presence multiplied by the proper fraction
-                (there is a discussion in the todo file about what "proper" means)
-        """
-        logging.info("reading file %s", filename)
-        bed_file = open(filename)
-        for line in bed_file:
-            line = line.strip().split()
-            chromosome, start, end, name, score, strand = line
-            # it should check if it's not a simplified bed with less columns
-
-
-
+    """
     def predict_states(self):
         logging.info("predicting states, stay tuned")
         warnings.filterwarnings("ignore", category=DeprecationWarning)
@@ -156,6 +126,7 @@ class Data:
         self.probability, states = self.model.decode(self.matrix, lengths=self.chromosome_lengths)
         logging.info("Is convergent: %s", str(self.model.monitor_.converged))
         return states
+    """
 
     def save_states_to_file(self, states, prefix=''):
         #output = open(prefix + "_all_states.txt", 'w')
