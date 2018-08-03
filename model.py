@@ -4,7 +4,7 @@ import logging
 import warnings
 import numpy
 from hmmlearn import hmm
-from data2 import Data
+from data import Data
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -40,15 +40,10 @@ class Model(object):
         self.data.filter_data(threshold)
 
     def fit_HMM(self):
-        # moze te warnings wywalic zupelnie na zewnatrz?
-        #warnings.filterwarnings("ignore", category=DeprecationWarning)
-        #warnings.filterwarnings("ignore", category=RuntimeWarning)
         self.model.fit(self.data.matrix, lengths=self.data.numbers_of_windows)
 
     def predict_states(self):
         logging.info("predicting states, stay tuned")
-        #warnings.filterwarnings("ignore", category=DeprecationWarning)
-        #warnings.filterwarnings("ignore", category=RuntimeWarning)
         logging.info("prepairing data")
         self.prepair_data()
         logging.info("fitting model")
