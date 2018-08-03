@@ -16,11 +16,11 @@ possibly with
 
 -s - number of states (default 3)
 -o - prefix to output files
--v - level of logging
+-l - level of logging
 -d - distribution of emissions (Gauss / NB; defaults to NB)
 -t - threshold for outliers; windows higher than that will be considered outliers
-     and replaced with mean value from the whole genome (excluding outliers);
-    0 (default) means no threshold
+     and replaced with median value from the whole genome (excluding outliers);
+     0 (default) means no threshold
 --dont-save - do not save one of the states as peaks
 
 Current output:
@@ -50,3 +50,5 @@ Assumes that bedgraphs
  requires them to have identical coordinates;
  exits otherwise.
  If there are some floats in the bedgraph, program will convert them to integers.
+
+Tested on python 2.7. Won't work with python3.

@@ -3,7 +3,7 @@
 import sys
 import logging
 import argparse
-from data import Data
+from model import Model
 
 class StreamToLogger(object):
     """
@@ -46,7 +46,7 @@ def parse_arguments():
                         help='windows above this value will be considered outliers'
                         ' and reduced to the median value;'
                         ' 0 (default) means no threshold')
-    parser.add_argument('-v', dest='verbosity',
+    parser.add_argument('-l', dest='verbosity',
                         action='store', type=str, default='i',
                         help=
                         'level of logging: c (critical), e (error), '
@@ -85,23 +85,22 @@ def main():
     sys.stderr = stream_to_logger
     logging.info("Command used: %s", ' '.join(sys.argv))
     logging.info("Creating data structure...")
-    data = Data(number_of_states=arguments.number_of_states, distr=arguments.distribution)
+    model = Model(number_of_states=arguments.number_of_states,
+                  distribution=arguments.distribution)
     logging.info("Reading in data...")
-    for infile in arguments.infiles:
-        data.add_data_from_bedgraph(infile)
-    if arguments.bed_file:
-        data.add_data_from_bed(arguments.bed_file, arguments.bed_mode)
+    model.read_in_files(arguments.infiles)
     if arguments.threshold != 0:
         logging.info("Filtering data (removing outliers)")
-        data.filter_data(arguments.threshold)
-    logging.debug("Chromosome names: %s", str(data.chromosome_names))
-    logging.debug("Chromosome lengths: %s", str(data.chromosome_lengths))
+        model.filter_data(arguments.threshold)
+    logging.debug("Window size: %i", model.data.window_size)
+    logging.debug("Chromosome names: %s", str(model.data.chromosome_names))
+    logging.debug("Chromosome ends: %s", str(model.data.chromosome_ends))
     logging.info("Data ready to analyse. Finding peaks")
-    states = data.predict_states()
-    data.save_states_to_file(states, arguments.output_prefix)
-    data.write_stats_to_file(arguments.output_prefix)
-    if arguments.save_peaks:
-        data.save_peaks_to_file(arguments.output_prefix)
+    model.predict_states()
+    model.save_states_to_seperate_files(arguments.output_prefix)
+    model.write_stats_to_file(arguments.output_prefix)
+    #if arguments.save_peaks:
+    #    pass
     logging.info("...done.")
 
 if __name__ == '__main__':

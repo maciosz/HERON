@@ -1,13 +1,9 @@
 #!/usr/bin/env python
 
-import sys
-import subprocess
-import warnings
 import logging
 import numpy
-from hmmlearn import hmm
 
-class Data:
+class Data(object):
     """
     Reading, storing and writing data
     from coverages and intervals.
@@ -51,33 +47,36 @@ class Data:
         That is - merge neighbouring windows
         if they have the same value,
         and set proper coordinates at the end of chromosomes.
-        
+
         Returns list of tuples (chr, start, end, value).
 
-        which_line - integer;
+        which_line: integer;
             which line of the matrix should be converted
             (which sample / patient / matrix row);
             indexing 0-relative
         """
+        self.matrix = self.matrix.transpose()
         output = []
-        previous_value = False
-        start, end = 1, False
+        previous_value = None
+        start, end = 1, None
         previous_chromosome = 0
         window = -1
         for value in self.matrix[which_line]:
             chromosome, window = self.goto_next_window(previous_chromosome, window)
             if chromosome != previous_chromosome:
                 end = self.chromosome_ends[previous_chromosome]
-            elif value != previous_value and previous_value:
+            elif value != previous_value and previous_value is not None:
                 end = window * self.window_size
-            if end:
-                output.append((self.chromosome_names[previous_chromosome], start, end, previous_value))
+            if end is not None:
+                output.append((self.chromosome_names[previous_chromosome],
+                               start, end, previous_value))
                 start = window * self.window_size + 1
-                end = False
+                end = None
             previous_value, previous_chromosome = value, chromosome
         output.append((self.chromosome_names[-1], start, self.chromosome_ends[-1], value))
+        self.matrix = self.matrix.transpose()
         return output
-                
+
     def goto_next_window(self, chromosome, window):
         window += 1
         if window > self.numbers_of_windows[chromosome] - 1:
@@ -86,20 +85,26 @@ class Data:
         return chromosome, window
 
     def save_intervals_as_bed(self, output, intervals, condition=None):
+        """
+        Given set of intervals, saves it to file in bed format.
+        Chooses only the intervals with value equal to condition.
+        condition = None means all the intervals.
+        """
         output = open(output, 'w')
         for interval in intervals:
-            if check_condition(condition, interval):
+            if self.check_condition(condition, interval):
                 output.write('\t'.join(map(str, interval)))
                 output.write('\n')
         output.close()
 
-    def check_condition(condition, interval):
-        if not condition:
+    def check_condition(self, condition, interval):
+        if condition is None:
             return True
         value = interval[-1]
         return value == condition
-        
+
     def add_data_from_bedgraph(self, filename):
+        logging.info("reading in file %s", filename)
         self.matrix.append([float(line.strip().split()[-1]) for line in open(filename)])
 
     def prepare_metadata_from_bedgraph(self, filename):
@@ -110,7 +115,9 @@ class Data:
         bedgraph = open(filename)
         previous_chromosome = None
         for line in bedgraph:
-            chromosome, start, end, value = line.strip().split()
+            chromosome, start, end, _ = line.strip().split()
+            if self.window_size == 1:
+                self.window_size = int(end) - int(start) + 1
             if chromosome != previous_chromosome:
                 self.chromosome_names.append(chromosome)
                 self.numbers_of_windows.append(1)
@@ -120,63 +127,21 @@ class Data:
                 self.numbers_of_windows[-1] += 1
             previous_end, previous_chromosome = end, chromosome
         self.chromosome_ends.append(end)
-        
 
     def add_data_from_bedgraphs(self, files):
         """
         Add data from multiple bedgraphs.
-        Uses the first one as the source of metadata.
+        Uses the first one as a source of metadata.
+
+        files: list of filenames (strings)
         """
         self.prepare_metadata_from_bedgraph(files[0])
         for infile in files:
             self.add_data_from_bedgraph(infile)
 
-
-
-    def save_states_to_file(self, states, prefix=''):
-        for state_being_saved in xrange(self.number_of_states):
-            counter = 0
-            last_state = 'last_state'
-            chromosome_index = 0
-            chromosome_name = self.chromosome_names[chromosome_index]
-            chromosome_length = self.chromosome_lengths[chromosome_index]
-            output = open(prefix + "_state_" + str(state_being_saved) + ".bed", 'w')
-            for current_state in states:
-                if counter == chromosome_length:
-                    if last_state == state_being_saved:
-                        output.write('\t'.join([chromosome_name,
-                                                str(start),
-                                                str(self.chromosome_ends[chromosome_index])]))
-                        output.write('\n')
-                    chromosome_index += 1
-                    counter = 0
-                    chromosome_name = self.chromosome_names[chromosome_index]
-                    chromosome_length = self.chromosome_lengths[chromosome_index]
-                    last_state = 'last_state'
-                if current_state == state_being_saved and last_state != state_being_saved:
-                    start = self.window_size * counter
-                elif current_state != state_being_saved and last_state == state_being_saved:
-                    end = self.window_size * counter
-                    output.write('\t'.join([chromosome_name, str(start), str(end)]))
-                    output.write('\n')
-                counter += 1
-                last_state = current_state
-            if current_state == state_being_saved:
-                output.write('\t'.join([chromosome_name,
-                                        str(start),
-                                        str(self.chromosome_ends[chromosome_index])]))
-                output.write('\n')
-            output.close()
-
-    def which_state_is_peaks(self):
-        # TODO: check whether mean is the highest among all samples
-        return self.model.means_.mean(axis=1).argmax()
-
-    def save_peaks_to_file(self, prefix):
-        which_state = self.which_state_is_peaks()
-        infile = prefix + "_state_" + str(which_state) + ".bed"
-        outfile = prefix + "_peaks.bed"
-        subprocess.call(["cp", infile, outfile])
+    #def which_state_is_peaks(self):
+    # TODO: check whether mean is the highest among all samples
+    #   return self.model.means_.mean(axis=1).argmax()
 
     def convert_floats_to_ints(self):
         #if any(int(self.matrix) != self.matrix):
