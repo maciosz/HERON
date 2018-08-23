@@ -70,7 +70,8 @@ class Data(object):
             if end is not None:
                 output.append((self.chromosome_names[previous_chromosome],
                                start, end, previous_value))
-                start = window * self.window_size + 1
+                start = window * self.window_size #+ 1
+                # beds are 0-relative, half-open, so I think this should work fine.
                 end = None
             previous_value, previous_chromosome = value, chromosome
         output.append((self.chromosome_names[-1], start, self.chromosome_ends[-1], value))
@@ -84,15 +85,18 @@ class Data(object):
             window = 0
         return chromosome, window
 
-    def save_intervals_as_bed(self, output, intervals, condition=None):
+    def save_intervals_as_bed(self, output, intervals, condition=None, save_value=False):
         """
         Given set of intervals, saves it to file in bed format.
         Chooses only the intervals with value equal to condition.
         condition = None means all the intervals.
+        save_value = False means write only coordinates.
         """
         output = open(output, 'w')
         for interval in intervals:
             if self.check_condition(condition, interval):
+                if save_value == False:
+                    interval = interval[:-1]
                 output.write('\t'.join(map(str, interval)))
                 output.write('\n')
         output.close()
@@ -117,7 +121,7 @@ class Data(object):
         for line in bedgraph:
             chromosome, start, end, _ = line.strip().split()
             if self.window_size == 1:
-                self.window_size = int(end) - int(start) + 1
+                self.window_size = int(end) - int(start) #+ 1
             if chromosome != previous_chromosome:
                 self.chromosome_names.append(chromosome)
                 self.numbers_of_windows.append(1)

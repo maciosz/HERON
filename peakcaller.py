@@ -58,6 +58,13 @@ def parse_arguments():
                         'Should the state with highest mean be saved as peaks?'
                         ' By default it will.'
                         ' If you specify this, it won\'t.')
+    parser.add_argument('--n-peaks', dest = 'n_peaks',
+                        action='store', type=float, default=0,
+                        help=
+                        'How many peaks do you expect,'
+                        ' as the fraction of the whole genome? (E.g. 0.01)'
+                        ' It will be used to initialise a transition matrix.'
+                        ' By default model doesn\'t assume anything on that matter.')
     return parser.parse_args()
 
 
@@ -87,6 +94,9 @@ def main():
     logging.info("Creating data structure...")
     model = Model(number_of_states=arguments.number_of_states,
                   distribution=arguments.distribution)
+    if arguments.n_peaks != 0:
+        logging.info("Initialising transition matrix...")
+        model.initialise_transition_matrix(arguments.n_peaks)
     logging.info("Reading in data...")
     model.read_in_files(arguments.infiles)
     if arguments.threshold != 0:

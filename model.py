@@ -26,12 +26,33 @@ class Model(object):
                                    n_iter=1000, tol=0.000005,
                                    verbose=True)
         elif self.distribution == "NB":
-            print "NB, yeah"
             return hmm.NegativeBinomialHMM(self.number_of_states,
                                            n_iter=1000,
                                            tol=0.00005,
                                            verbose=True)
-            print self.model
+
+    def initialise_transition_matrix(self, n_peaks):
+        self.model.init_params = self.model.init_params.replace("t", "")
+        #how_many_peak_states = self.number_of_states - 1
+        #background = [1 - n_peaks * how_many_peak_states]
+        #             + [n_peaks] * how_many_peak_states
+        #peak = [1 - 2 * n_peaks * how_many_peak_states] +
+        #       + [2 * n_peaks] * how_many_peak_states
+        #transmat = np.array(background,
+        #                    peak * how_many_peak_states)
+        how_many_background_states = self.number_of_states - 1
+        background = [(1 - n_peaks) / how_many_background_states] \
+                     * how_many_background_states \
+                     + [n_peaks]
+        peak = [(1 - 5 * n_peaks) / how_many_background_states] \
+                     * how_many_background_states \
+                     + [5 * n_peaks]
+        print background
+        print peak
+        transmat = numpy.array([background] * how_many_background_states + \
+                            [peak])
+        self.model.transmat_ = transmat
+        print transmat
 
     def read_in_files(self, files):
         self.data.add_data_from_bedgraphs(files)
@@ -48,6 +69,7 @@ class Model(object):
         self.prepair_data()
         logging.info("fitting model")
         print self.model
+        print self.model.transmat_
         self.fit_HMM()
         logging.info("predicting states")
         self.probability, states = self.model.decode(self.data.matrix,
@@ -67,7 +89,7 @@ class Model(object):
         """
         intervals = self.data.windows_to_intervals(-1)
         print self.data.matrix.transpose() #[-1]
-        print intervals
+        #print intervals
         output = output_prefix + "_all_states.bed"
         self.data.save_intervals_as_bed(output, intervals)
         for state in xrange(self.number_of_states):
@@ -77,8 +99,11 @@ class Model(object):
     def write_stats_to_file(self, output_prefix):
         output = open(output_prefix + "_stats.txt", "w")
         output.write("Score: "
-                     + str(self.model.score(self.data.matrix, self.data.numbers_of_windows))
+                     + str(self.model.score(numpy.delete(self.data.matrix, -1, axis = 1),
+                                            self.data.numbers_of_windows))
                      + '\n')
+        # zapisywanie stanow do data.matrix troche zepsulo ten kawalek,
+        # musze usuwac ostatnia kolumne tutaj ^
         output.write("Probability: " + str(self.probability) + '\n')
         output.write("Transition matrix: \n" + str(self.model.transmat_) + '\n')
         output.write("Means: \n" + str(self.model.means_) + '\n')
