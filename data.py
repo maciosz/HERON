@@ -58,7 +58,7 @@ class Data(object):
         self.matrix = self.matrix.transpose()
         output = []
         previous_value = None
-        start, end = 1, None
+        start, end = 0, None
         previous_chromosome = 0
         window = -1
         for value in self.matrix[which_line]:
@@ -71,7 +71,7 @@ class Data(object):
                 output.append((self.chromosome_names[previous_chromosome],
                                start, end, previous_value))
                 start = window * self.window_size #+ 1
-                # beds are 0-relative, half-open, so I think this should work fine.
+                # beds are 0-based, half-open, so I think this should work fine.
                 end = None
             previous_value, previous_chromosome = value, chromosome
         output.append((self.chromosome_names[-1], start, self.chromosome_ends[-1], value))

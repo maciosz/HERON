@@ -28,7 +28,7 @@ class Model(object):
         elif self.distribution == "NB":
             return hmm.NegativeBinomialHMM(self.number_of_states,
                                            n_iter=1000,
-                                           tol=0.00005,
+                                           tol=0.000005,
                                            verbose=True)
 
     def initialise_transition_matrix(self, n_peaks):
@@ -40,17 +40,21 @@ class Model(object):
         #       + [2 * n_peaks] * how_many_peak_states
         #transmat = np.array(background,
         #                    peak * how_many_peak_states)
-        how_many_background_states = self.number_of_states - 1
-        background = [(1 - n_peaks) / how_many_background_states] \
-                     * how_many_background_states \
-                     + [n_peaks]
-        peak = [(1 - 5 * n_peaks) / how_many_background_states] \
-                     * how_many_background_states \
-                     + [5 * n_peaks]
-        print background
-        print peak
-        transmat = numpy.array([background] * how_many_background_states + \
-                            [peak])
+        #how_many_background_states = self.number_of_states - 1
+        #background = [(1 - n_peaks) / how_many_background_states] \
+        #             * how_many_background_states \
+        #             + [n_peaks]
+        #peak = [(1 - 5 * n_peaks) / how_many_background_states] \
+        #             * how_many_background_states \
+        #             + [5 * n_peaks]
+        #print background
+        #print peak
+        #transmat = numpy.array([background] * how_many_background_states + \
+        #                    [peak])
+        transmat = numpy.array([[0.5, 0.5, 0, 0],
+                                [0.5 - n_peaks, 0.5, n_peaks, 0],
+                                [0, 0.45, 0.1, 0.45],
+                                [0, 0, 0.5, 0.5]])
         self.model.transmat_ = transmat
         print transmat
 
@@ -69,13 +73,15 @@ class Model(object):
         self.prepair_data()
         logging.info("fitting model")
         print self.model
-        print self.model.transmat_
+        if hasattr(self.model, "transmat_"):
+            print self.model.transmat_
         self.fit_HMM()
         logging.info("predicting states")
         self.probability, states = self.model.decode(self.data.matrix,
                                                      lengths=self.data.numbers_of_windows)
         logging.info("Is convergent: %s", str(self.model.monitor_.converged))
         self.data.matrix = numpy.c_[self.data.matrix, states]
+        logging.info("Number of iterations till convergence: %i", self.model.monitor_.iter)
         #return states
 
     def prepair_data(self):
@@ -88,25 +94,51 @@ class Model(object):
         Assumes states are in the last row of the data matrix.
         """
         intervals = self.data.windows_to_intervals(-1)
-        print self.data.matrix.transpose() #[-1]
+        #print self.data.matrix.transpose() #[-1]
         #print intervals
         output = output_prefix + "_all_states.bed"
-        self.data.save_intervals_as_bed(output, intervals)
+        self.data.save_intervals_as_bed(output, intervals, save_value = True)
         for state in xrange(self.number_of_states):
             output_name = output_prefix + "_state_" + str(state) + ".bed"
             self.data.save_intervals_as_bed(output_name, intervals, state)
 
     def write_stats_to_file(self, output_prefix):
         output = open(output_prefix + "_stats.txt", "w")
-        output.write("Score: "
+        output.write("Score:\t"
                      + str(self.model.score(numpy.delete(self.data.matrix, -1, axis = 1),
                                             self.data.numbers_of_windows))
                      + '\n')
         # zapisywanie stanow do data.matrix troche zepsulo ten kawalek,
         # musze usuwac ostatnia kolumne tutaj ^
-        output.write("Probability: " + str(self.probability) + '\n')
-        output.write("Transition matrix: \n" + str(self.model.transmat_) + '\n')
-        output.write("Means: \n" + str(self.model.means_) + '\n')
-        output.write("Covars: \n" + str(self.model.covars_) + '\n')
+        #output.write("Probability: " + str(self.probability) + '\n')
+        self.write_probability_to_file(output)
+        #output.write("Transition matrix: \n" + str(self.model.transmat_) + '\n')
+        self.write_transmat_to_file(output)
+        #output.write("Means: \n" + str(self.model.means_) + '\n')
+        self.write_means_to_file(output)
+        #output.write("Covars: \n" + str(self.model.covars_) + '\n')
+        self.write_covars_to_file(output)
         output.write("Mean length: TODO\n")
         output.close()
+
+    def write_probability_to_file(self, output_file):
+        output_file.write("Probability:\t%f\n" % self.probability)
+
+    def _write_some_stat_to_file(self, output_file, name):
+        output_file.write("%s:\n" % name)
+        for i, mean in enumerate(self.model.__getattribute__(name + "_")):
+            output_file.write("%s_of_state_%i:\t%f\n" % (name, i, mean))
+
+    def write_means_to_file(self, output_file):
+        self._write_some_stat_to_file(output_file,
+                                      "means")
+
+    def write_covars_to_file(self, output_file):
+        self._write_some_stat_to_file(output_file,
+                                      "covars")
+
+    def write_transmat_to_file(self, output_file):
+        output_file.write("Transition matrix:\n")
+        for line in self.model.transmat_:
+            output_file.write("\t".join([str(i) for i in line]))
+            output_file.write("\n")

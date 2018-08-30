@@ -85,7 +85,7 @@ def main():
                         format='%(levelname)s\t%(asctime)s\t%(message)s',
                         datefmt="%d.%m.%Y %H:%M:%S")
     stdout_logger = logging.getLogger('STDOUT')
-    stream_to_logger = StreamToLogger(stdout_logger, logging.DEBUG)
+    stream_to_logger = StreamToLogger(stdout_logger, logging.DEBUG) # INFO?
     sys.stdout = stream_to_logger
     stderr_logger = logging.getLogger('STDERR')
     stream_to_logger = StreamToLogger(stderr_logger, logging.ERROR)

@@ -22,6 +22,10 @@ possibly with
      and replaced with median value from the whole genome (excluding outliers);
      0 (default) means no threshold
 --dont-save - do not save one of the states as peaks
+--n-peaks - how many peaks we expect (as fraction of the whole genome);
+            it's used to generate initial transition matrix;
+            by default there are no assumptions on that matter;
+            so far I don't see if it influences anything.
 
 Current output:
  generates
@@ -49,6 +53,10 @@ Assumes that bedgraphs
  When using multiple bedgraphs,
  requires them to have identical coordinates;
  exits otherwise.
- If there are some floats in the bedgraph, program will convert them to integers.
+ (Actually, no exiting at the moment. I like to live dangerously.)
+ If there are some floats in the bedgraph
+ and distribution is set to Negative Binomial,
+ program will convert them to integers
+ (we don't mind floats with Gauss).
 
 Tested on python 2.7. Won't work with python3.
