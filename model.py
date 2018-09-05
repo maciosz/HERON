@@ -56,7 +56,7 @@ class Model(object):
                                 [0, 0.45, 0.1, 0.45],
                                 [0, 0, 0.5, 0.5]])
         self.model.transmat_ = transmat
-        print transmat
+        #logging.debug(str(transmat))
 
     def read_in_files(self, files):
         self.data.add_data_from_bedgraphs(files)
@@ -72,9 +72,9 @@ class Model(object):
         logging.info("prepairing data")
         self.prepair_data()
         logging.info("fitting model")
-        print self.model
-        if hasattr(self.model, "transmat_"):
-            print self.model.transmat_
+        #logging.debug(self.model)
+        #if hasattr(self.model, "transmat_"):
+        #    logging.debug(self.model.transmat_)
         self.fit_HMM()
         logging.info("predicting states")
         self.probability, states = self.model.decode(self.data.matrix,
@@ -126,8 +126,21 @@ class Model(object):
 
     def _write_some_stat_to_file(self, output_file, name):
         output_file.write("%s:\n" % name)
-        for i, mean in enumerate(self.model.__getattribute__(name + "_")):
-            output_file.write("%s_of_state_%i:\t%f\n" % (name, i, mean))
+        for i, stats in enumerate(self.model.__getattribute__(name + "_")):
+            if len(stats.shape) == 1:
+                output_file.write("%s_of_state_%i:" % (name, i))
+                for stat in stats:
+                    output_file.write("\t%f" % stat)
+                output_file.write("\n")
+            elif len(stats.shape) == 2:
+                for stat in stats:
+                    output_file.write("%s_of_state_%i:\t" % (name, i))
+                    output_file.write("\t".join(["%.6f" % value for value in stat]))
+                    output_file.write("\n")
+            else:
+                output_file.write("%s_of_state%i:\n" % (name, i))
+                output_file.write(str(stats))
+                output_file.write("\n")
 
     def write_means_to_file(self, output_file):
         self._write_some_stat_to_file(output_file,

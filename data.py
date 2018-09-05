@@ -30,12 +30,12 @@ class Data(object):
             median = numpy.median(filter(lambda x: x <= 1000, line))
             medians.append(median)
         #means = map(numpy.mean, filter(lambda x: x <= 1000, self.matrix))
-        print "mediany:", medians
+        logging.debug("mediany: %s", str(medians))
         counter = 0
         for which_line, line in enumerate(self.matrix):
             for position, value in enumerate(line):
                 if value > threshold:
-                    print "podmieniam", value, "na", median[which_line]
+                    logging.debug("podmieniam %f na %f", (value, median[which_line]))
                     self.matrix[which_line][position] = median[which_line]
                     counter += 1
         logging.info("I've reduced values in %i windows to median value.", counter)
