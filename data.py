@@ -35,8 +35,8 @@ class Data(object):
         for which_line, line in enumerate(self.matrix):
             for position, value in enumerate(line):
                 if value > threshold:
-                    logging.debug("podmieniam %f na %f", (value, median[which_line]))
-                    self.matrix[which_line][position] = median[which_line]
+                    logging.debug("podmieniam %f na %f", (value, medians[which_line]))
+                    self.matrix[which_line][position] = medians[which_line]
                     counter += 1
         logging.info("I've reduced values in %i windows to median value.", counter)
 
