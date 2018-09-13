@@ -35,18 +35,18 @@ def parse_arguments():
     parser.add_argument('-d', dest='distribution',
                         action='store', type=str, default='NB',
                         help='distribution of emissions; "Gauss" or "NB" (default)')
-    parser.add_argument('-b', dest='bed_file',
-                        action='store', type=str,
-                        help='optional bed file (currently not used)')
-    parser.add_argument('-m', dest='bed_mode',
-                        action='store', type=str, default='binary',
-                        help='mode for reading in bed file, currently not used')
+    #parser.add_argument('-b', dest='bed_file',
+    #                    action='store', type=str,
+    #                    help='optional bed file (currently not used)')
+    #parser.add_argument('-m', dest='bed_mode',
+    #                    action='store', type=str, default='binary',
+    #                    help='mode for reading in bed file, currently not used')
     parser.add_argument('-t', dest='threshold',
                         action='store', type=int, default=0,
                         help='windows above this value will be considered outliers'
                         ' and reduced to the median value;'
                         ' 0 (default) means no threshold')
-    parser.add_argument('-l', dest='verbosity',
+    parser.add_argument('-l', dest='logging',
                         action='store', type=str, default='i',
                         help=
                         'level of logging: c (critical), e (error), '
@@ -75,7 +75,7 @@ def main():
                       'w': logging.WARNING,
                       'i': logging.INFO,
                       'd': logging.DEBUG}
-    logging_level = verbosity_dict[arguments.verbosity]
+    logging_level = verbosity_dict[arguments.logging]
     log_name = arguments.output_prefix + ".log"
     if log_name == '.log':
         log_name = "log"

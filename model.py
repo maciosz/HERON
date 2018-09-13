@@ -17,6 +17,7 @@ class Model(object):
         self.number_of_states = number_of_states
         self.distribution = distribution
         self.model = self.create_HMM()
+        #self.model.means_ = numpy.array([[0], [4], [20]])
         self.probability = None
 
     def create_HMM(self):
@@ -24,6 +25,8 @@ class Model(object):
             return hmm.GaussianHMM(self.number_of_states,
                                    covariance_type='diag',
                                    n_iter=1000, tol=0.000005,
+                                   #means_weight = 0.00001,
+                                   #init_params = 'cts',
                                    verbose=True)
         elif self.distribution == "NB":
             return hmm.NegativeBinomialHMM(self.number_of_states,
@@ -32,6 +35,10 @@ class Model(object):
                                            verbose=True)
 
     def initialise_transition_matrix(self, n_peaks):
+        """
+        To trzeba recznie zmieniac zeby dostosowac do aktualnych potrzeb.
+        W fazie testowania.
+        """
         self.model.init_params = self.model.init_params.replace("t", "")
         #how_many_peak_states = self.number_of_states - 1
         #background = [1 - n_peaks * how_many_peak_states]
@@ -82,6 +89,10 @@ class Model(object):
         logging.info("Is convergent: %s", str(self.model.monitor_.converged))
         self.data.matrix = numpy.c_[self.data.matrix, states]
         logging.info("Number of iterations till convergence: %i", self.model.monitor_.iter)
+        if self.distribution == "NB":
+            if self.model.covars_le_means > 0:
+                logging.warning("Covars <= means %i times during fitting.",
+                                self.model.covars_le_means)
         #return states
 
     def prepair_data(self):
