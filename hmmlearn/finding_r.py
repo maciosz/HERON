@@ -18,21 +18,27 @@ from scipy.special import digamma
 
 def calculate_derivative(pstwa, dane, r, p):
     #print pstwa.T
-    #print pstwa.T.shape
+    #print "** pstwa shape:"
+    #print pstwa.shape
     #print
 
     #print dane
+    #print "** dane shape:"
     #print dane.shape
 
     #print r.T
-    #print r.T.shape
+    #print "** r shape:"
+    #print r.shape
+
+    #print "** p shape:"
+    #print p.shape
 
     n_comp, n_var = r.shape
     n_obs, n_var = dane.shape
 
     #suma = np.array([dane] * n_comp) + np.repeat(r[:, np.newaxis], n_obs, axis=1)
     #suma = np.squeeze(suma).T
-    suma = dane + r.T
+    suma = (dane + r.T)
 
     #print "suma:"
     #print suma
@@ -46,28 +52,81 @@ def calculate_derivative(pstwa, dane, r, p):
     #print b
     #print c
     derivative = a - b + c
+    if np.all(r[0] < 1.0) & np.all(derivative[0] < -80.0):
+        print "cos dziwnego:"
+        print r, derivative
     return derivative
 
-def update_r(r, r_prev, derivative):
-    print "r_prev:", r_prev
-    print "r old:", r
+def update_r(r, r_prev, derivative, r_counter):
+    #print "r_prev:", r_prev
+    #print "r old:", r
     for i in xrange(len(r)):
         delta = abs(r[i] - r_prev[i])
-        print "delta:", delta
-        if derivative[i] > 0:
+        if np.all(delta <= 1e-7):
+            r_counter[i] += 1
+            if r_counter[i] > 30:
+                delta = 20
+                r_counter[i] = 0
+        if i == 0:
+            print "delta:", delta
+            print "derivative:", derivative[0]
+            print "r:", r[0]
+        if abs(derivative[i]) <= 1e-10:
+            pass
+        elif derivative[i] > 0:
             if delta == 0:
-                r[i] = r[i] * 100
+                r[i] = r[i] * 10
             else:
-                r[i] = r[i] + delta/2.0
+                r[i] = r[i] + delta * 0.9 #/2.0
         elif derivative[i] < 0:
             if delta == 0:
-                r[i] = r[i] / 100.0
+                r[i] = r[i] / 10.0
             else:
-                r[i] = r[i] - delta/2.0
-        if r[i] < 1e-3:
-            r[i] = 1e-2
-    print "r new:", r
+                r[i] = r[i] - delta * 0.9 #/2.0
+        if r[i] < 0:
+            r[i] = 1e-3
+    #print "r new:", r
+    if r.shape == (1,3):
+        r = r.T
+        print "transponuje r, wtf"
+    return r, r_counter
+
+def find_r(r_initial, dane, pstwa, p, threshold = 1e-4):
+    print "pstwa shape:", pstwa.shape
+    print "r shape:", r_initial.shape
+    print "dane shape:", dane.shape
+    print "p shape:", p.shape
+    derivatives = []
+    for i in np.linspace(0, 1, 100):
+        i = np.array([[i], [i], [i]])
+        derivatives.append(calculate_derivative(pstwa, dane, i, p)[0])
+    print derivatives
+    r = copy.deepcopy(r_initial)
+    r_prev = copy.deepcopy(r_initial)
+    r_not_found = True
+    counter = 0
+    r_counter = [0] * r.shape[0]
+    while r_not_found:
+        derivative = calculate_derivative(pstwa, dane, r, p)
+        if np.all(r[0] < 1.0) & np.all(derivative[0] < -80.0):
+            print "i tu tez dziwnie, zobaczmy"        
+            #r_tmp = 0.54912251
+            print "derivative %f:" % r[0]
+            r_tmp = np.array([r[0], r[0], r[0]])
+            print calculate_derivative(pstwa, dane, r_tmp, p)[0]
+            print "r, derivative:"
+            print r, derivative
+            print "***"
+        if np.all(abs(derivative) < threshold):
+            r_not_found = False
+        r_new, r_counter = update_r(copy.deepcopy(r), copy.deepcopy(r_prev), derivative, r_counter)
+        r, r_prev = copy.deepcopy(r_new), copy.deepcopy(r)
+        counter += 1
+        if counter % 10 == 0:
+            print "%i iterations" % counter
+            #print derivative[0]
     return r
+
 
 def main():
     dane = np.array([10, 15, 20, 9, 30])[:, np.newaxis]

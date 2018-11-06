@@ -152,8 +152,11 @@ class Data(object):
         for line in self.matrix:
             for value in line:
                 if value != int(value):
-                    logging.info("Warning: your values contain floats,"
-                                 " I'm converting them to integers")
+                    logging.warning("Warning: your values contain floats,"
+                                 " I'm converting them to integers.")
+                    # this appears for every file
+                    # kind of annoying, would be better if it did only
+                    # once *or* for each file but togheter with it's name
                     break
         self.matrix = [[int(i) for i in line] for line in self.matrix]
 

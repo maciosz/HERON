@@ -30,7 +30,7 @@ class Model(object):
                                    verbose=True)
         elif self.distribution == "NB":
             return hmm.NegativeBinomialHMM(self.number_of_states,
-                                           n_iter=1000,
+                                           n_iter=50,
                                            tol=0.000005,
                                            verbose=True)
 
@@ -91,7 +91,7 @@ class Model(object):
         logging.info("Number of iterations till convergence: %i", self.model.monitor_.iter)
         if self.distribution == "NB":
             if self.model.covars_le_means > 0:
-                logging.warning("Covars <= means %i times during fitting.",
+                logging.warning("Covars <= means %i times during fitting. No good.",
                                 self.model.covars_le_means)
         #return states
 
@@ -152,6 +152,8 @@ class Model(object):
                 output_file.write("%s_of_state%i:\n" % (name, i))
                 output_file.write(str(stats))
                 output_file.write("\n")
+    # Actually, diag covars would be more readable if
+    # only diagonal would be printed, without all the zeros.
 
     def write_means_to_file(self, output_file):
         self._write_some_stat_to_file(output_file,

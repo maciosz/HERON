@@ -48,7 +48,7 @@ class ConvergenceMonitor(object):
     iter : int
         Number of iterations performed while training the model.
     """
-    _template = "{iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
+    _template = "Iteration {iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
 
     def __init__(self, tol, n_iter, verbose):
         self.tol = tol
@@ -436,10 +436,12 @@ class _BaseHMM(BaseEstimator):
                 #print(i)
                 #print(j)
                 framelogprob = self._compute_log_likelihood(X[i:j])
+                #logging.debug("Framelogprob:")
+                #logging.debug(framelogprob)
                 logprob, fwdlattice = self._do_forward_pass(framelogprob)
                 curr_logprob += logprob
                 if (not curr_logprob < 10) and (not curr_logprob > 10):
-                    logging.debug("Curr_Logprob jest nan")
+                    logging.debug("Curr_logprob jest nan")
                     #logging.debug("Framelogprob:")
                     #logging.debug(framelogprob)
                     #logging.debug("X[i:j]:")
@@ -455,8 +457,7 @@ class _BaseHMM(BaseEstimator):
                 self._accumulate_sufficient_statistics(
                     stats, X[i:j], framelogprob, posteriors, fwdlattice,
                     bwdlattice)
-            #if curr_logprob is np.nan:
-           # XXX must be before convergence check, because otherwise
+            # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
             self._do_mstep(stats)
 
@@ -483,6 +484,16 @@ class _BaseHMM(BaseEstimator):
                        np.log(self.startprob_),
                        np.log(self.transmat_),
                        framelogprob, fwdlattice)
+        logging.debug("pierwsze dwa rzedy fwdlattice:")
+        logging.debug(str(fwdlattice[0]))
+        logging.debug(str(fwdlattice[1]))
+        logging.debug("ostatnie dwa rzedy fwdlattice:")
+        logging.debug(str(fwdlattice[-2]))
+        logging.debug(str(fwdlattice[-1]))
+        logging.debug("i ostatni logsumexp (czyli logprob):")
+        logging.debug(str(logsumexp(fwdlattice[-1])))
+        logging.debug("czy wszystkie wartosci w danym stanie sa -inf:")
+        logging.debug(str(np.all(fwdlattice == -np.inf, axis=0)))
         return logsumexp(fwdlattice[-1]), fwdlattice
 
     def _do_backward_pass(self, framelogprob):
@@ -492,6 +503,15 @@ class _BaseHMM(BaseEstimator):
                         np.log(self.startprob_),
                         np.log(self.transmat_),
                         framelogprob, bwdlattice)
+        logging.debug("pierwsze dwa rzedy bwdlattice:")
+        logging.debug(str(bwdlattice[0]))
+        logging.debug(str(bwdlattice[1]))
+        logging.debug("ostatnie dwa rzedy bwdlattice:")
+        logging.debug(str(bwdlattice[-2]))
+        logging.debug(str(bwdlattice[-1]))
+        logging.debug("czy wszystkie wartosci w danym stanie sa -inf:")
+        logging.debug(str(np.all(bwdlattice == -np.inf, axis=0)))
+ 
         return bwdlattice
 
     def _compute_posteriors(self, fwdlattice, bwdlattice):
@@ -681,7 +701,7 @@ class _BaseHMM(BaseEstimator):
             #logging.debug("m_step startprob 3:")
             #logging.debug(self.startprob_)
         if 't' in self.params:
-            #logging.debug("aktualizuje transmat")
+            logging.debug("aktualizuje transmat")
             #logging.debug("Stats['trans']:")
             #logging.debug(stats['trans'])
             transmat_ = self.transmat_prior - 1.0 + stats['trans']
@@ -692,5 +712,5 @@ class _BaseHMM(BaseEstimator):
             #logging.debug("self.transmat_ przed normalizacja:")
             #logging.debug(self.transmat_)
             normalize(self.transmat_, axis=1)
-            #logging.debug("I po:")
-            #logging.debug(self.transmat_)
+            logging.debug("I po:")
+            logging.debug(self.transmat_)
