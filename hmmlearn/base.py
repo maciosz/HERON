@@ -480,6 +480,12 @@ class _BaseHMM(BaseEstimator):
     def _do_forward_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         fwdlattice = np.zeros((n_samples, n_components))
+        #print("n_samples, n_components,log(startprob), log(transmat), framelogprob, bwdlattice:")
+        #print(n_samples, n_components)
+        #print(np.log(self.startprob_).shape)
+        #print(np.log(self.transmat_).shape)
+        #print(framelogprob.shape)
+        #print(fwdlattice.shape)
         _hmmc._forward(n_samples, n_components,
                        np.log(self.startprob_),
                        np.log(self.transmat_),

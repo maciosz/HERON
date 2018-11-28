@@ -26,7 +26,7 @@ import finding_r
 from .base import _BaseHMM
 from .utils import iter_from_X_lengths, normalize
 
-__all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM"]
+__all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM", "NegativeBinomialHMM"]
 
 COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
 
@@ -942,12 +942,14 @@ class NegativeBinomialHMM(_BaseHMM):
 
 
     def _generate_sample_from_state(self, state, random_state=None):
-        cv = self.covars_
-        means = self.means_
-        if 'p' in self.init_params or not hasattr(self, "p"):
-            self.p = 1 - ((cv-means) / cv)
-        if 'r' in self.init_params or not hasattr(self, "r"):
-            self.r = means**2 / (cv - means)
+        #cv = self.covars_
+        #means = self.means_
+        p = self.p
+        r = self.r
+        #if 'p' in self.init_params or not hasattr(self, "p"):
+        #    self.p = 1 - ((cv-means) / cv)
+        #if 'r' in self.init_params or not hasattr(self, "r"):
+        #    self.r = means**2 / (cv - means)
         return [nbinom(self.r[state][feature], self.p[state][feature]).rvs()
                 for feature in xrange(self.n_features)]
 
@@ -1040,9 +1042,7 @@ class NegativeBinomialHMM(_BaseHMM):
         #print "self.r * stats[post] shape:", (self.r * stats['post'][:, np.newaxis]).shape
         
         p = stats['obs'] / (self.r * stats['post'][:, np.newaxis] + stats['obs'])
-        #self.p = p[1][:, np.newaxis]
-        # !!! TODO to tylko na czas testowania r
-        logging.info("new p: %s", str(self.p))
+        logging.debug("new p: %s", str(self.p))
 
         # p = ( sum_t (P_t * o_t) ) / ( r * sum_t P_t + sum_t (P_t * o_t)  )
 
@@ -1059,13 +1059,15 @@ class NegativeBinomialHMM(_BaseHMM):
         covars = (covars_prior + cv_num) / np.maximum(cv_den, 1e-5)
 
         r_initial = means**2 / (covars - means) # dim: n_comp
-        epsilon = 10**-2
+        if np.any(np.isnan(r_initial)):
+            print "r_initial jest nan, paczaj:"
+            print r_initial
+            r_initial = self.r
 
         r = finding_r.find_r(r_initial, stats['x'],
-                             stats['posteriors'], self.p,
-                             epsilon)
+                             stats['posteriors'], self.p)
         self.r = r      
-        logging.info("new r: %s", str(self.r))
+        logging.debug("new r: %s", str(self.r))
             
         self.means_ = self.p * self.r / (1 - self.p)
         self.covars_ = self.p * self.r / (1 - self.p) ** 2
