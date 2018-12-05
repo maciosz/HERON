@@ -25,7 +25,7 @@ def parse_arguments():
     parser = argparse.ArgumentParser()
     parser.add_argument('-i', dest='infiles',
                         action='store', type=str, nargs='+',
-                        help='input files (currently only bedgraph format is allowed)')
+                        help='input files (currently bam and bedgraph formats are allowed)')
     parser.add_argument('-s', dest='number_of_states',
                         action='store', type=int, default=3,
                         help='number of states (default: 3)')
@@ -52,6 +52,10 @@ def parse_arguments():
                         'level of logging: c (critical), e (error), '
                         'w (warning), i (info), d (debug). '
                         'Defaults to i.')
+    parser.add_argument('-r', dest='resolution',
+                        action='store', type=int, default=200,
+                        help=
+                        'Resolution to use. Ignored when infiles are bedgraphs.')
     parser.add_argument('--dont-save', dest='save_peaks',
                         action='store_false',
                         help=
@@ -98,7 +102,7 @@ def main():
         logging.info("Initialising transition matrix...")
         model.initialise_transition_matrix(arguments.n_peaks)
     logging.info("Reading in data...")
-    model.read_in_files(arguments.infiles)
+    model.read_in_files(arguments.infiles, resolution=arguments.resolution)
     if arguments.threshold != 0:
         logging.info("Filtering data (removing outliers)")
         model.filter_data(arguments.threshold)
@@ -111,6 +115,7 @@ def main():
     model.write_stats_to_file(arguments.output_prefix)
     #if arguments.save_peaks:
     #    pass
+    model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
     logging.info("...done.")
 
 if __name__ == '__main__':

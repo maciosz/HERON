@@ -1,12 +1,16 @@
 #!/usr/bin/env python
 
+import sys
+import math
 import logging
 import numpy
+import pysam
 
 class Data(object):
     """
-    Reading, storing and writing data
-    from coverages and intervals.
+    Object for reading, storing and writing data
+    from bams, coverages and intervals.
+    Ok, just coverages.
     """
 
     def __init__(self):
@@ -22,8 +26,11 @@ class Data(object):
 
     def filter_data(self, threshold):
         """
-        Set data above the threshold to the median.
+        Set data above the given threshold to the median.
         That's just a sketch of what to do with outliers.
+
+        Actually threshold could be given for every patient,
+        not as a single value. But for now it's just one float.
         """
         medians = []
         for line in self.matrix:
@@ -113,7 +120,7 @@ class Data(object):
 
     def prepare_metadata_from_bedgraph(self, filename):
         """
-        Set chromosome_names, chromosome_lengths and numbers_of_windows
+        Set chromosome_names, chromosome_ends and numbers_of_windows
         basing on a single bedgraph file.
         """
         bedgraph = open(filename)
@@ -147,6 +154,66 @@ class Data(object):
     # TODO: check whether mean is the highest among all samples
     #   return self.model.means_.mean(axis=1).argmax()
 
+    def prepare_metadata_from_bam(self, filename, resolution):
+        """
+        Set chromosome_names, chromosome_ends and numbers_of_windows
+        basing on a single bam file.
+        """
+        self.window_size = resolution
+        bam = pysam.AlignmentFile(filename)
+        self.chromosome_names = list(bam.references)
+        #self.chromosome_ends = [bam.get_reference_length(chromosome)
+        #                           for chromosome in self.chromosome_names]
+        # zaleznie od wersji pysama
+        self.chromosome_ends = list(bam.lengths)
+        self.numbers_of_windows = [int(math.ceil(length / resolution))
+                                   for length in self.chromosome_ends]
+
+
+    def add_data_from_bam(self, filename):
+        """
+        Add data from bam file.
+        """
+        resolution = self.window_size
+        bam = pysam.AlignmentFile(filename)
+        windows = []
+        counter = 0
+        for chr_id, chromosome in enumerate(self.chromosome_names):
+            pileup = bam.pileup(reference=chromosome)
+            first_read = pileup.next().pos
+            first_window = first_read / resolution
+            for window in xrange(self.numbers_of_windows[chr_id]):
+                counter += 1
+                if window < first_window:
+                    windows.append(0)
+                    continue
+                if counter % 100 == 0:
+                    logging.debug("%d windows processed", counter)
+                start = window * resolution
+                end = start + window
+                pileup = bam.pileup(reference=chromosome,
+                                    start=start, end=end)
+                value = sum(position.n for position in pileup)
+                mean = float(value) / resolution
+                windows.append(mean)
+        logging.debug("Dlugosc tego pliku: %d", len(windows))
+        self.matrix.append(windows)
+        
+ 
+    def add_data_from_bams(self, files):
+        """
+        Add data from multiple bams.
+        Uses the first one as a source of metadata.
+
+        files: list of filenames (strings)
+
+        Mozna by zlaczyc te metode bamowa i bedgraphowa,
+        i dorobic takie ktore po rozszerzeniach wiedza co robic.
+        """
+        self.prepare_metadata_from_bam(files[0])
+        for infile in files:
+            self.add_data_from_bam(infile)
+
     def convert_floats_to_ints(self):
         #if any(int(self.matrix) != self.matrix):
         for line in self.matrix:
@@ -159,4 +226,34 @@ class Data(object):
                     # once *or* for each file but togheter with it's name
                     break
         self.matrix = [[int(i) for i in line] for line in self.matrix]
+
+    def prepare_metadata_from_file(self, filename, resolution):
+        if filename.endswith("bedgraph"):
+            self.prepare_metadata_from_bedgraph(filename)
+        elif filename.endswith("bam"):
+            self.prepare_metadata_from_bam(filename, resolution)
+        else:
+            logging.error("Unknown file type: %s",
+                          filename.split(".")[1])
+            sys.exit()
+
+    def add_data_from_file(self, filename):
+        if filename.endswith("bedgraph"):
+            self.add_data_from_bedgraph(filename)
+        elif filename.endswith("bam"):
+            self.add_data_from_bam(filename)
+        else:
+            logging.error("Unknown file type: %s",
+                          filename.split(".")[1])
+            sys.exit()
+
+
+    def add_data_from_files(self, filenames, resolution):
+        self.prepare_metadata_from_file(filenames[0], resolution)
+        for filename in filenames:
+            self.add_data_from_file(filename)
+        logging.debug("Wymiary macierzy: %d", len(self.matrix))
+        logging.debug("Liczba kolumn:  %d",  len(self.matrix[0]))
+ 
+
 

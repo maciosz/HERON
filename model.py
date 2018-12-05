@@ -65,8 +65,8 @@ class Model(object):
         self.model.transmat_ = transmat
         #logging.debug(str(transmat))
 
-    def read_in_files(self, files):
-        self.data.add_data_from_bedgraphs(files)
+    def read_in_files(self, files, resolution):
+        self.data.add_data_from_files(files, resolution)
 
     def filter_data(self, threshold):
         self.data.filter_data(threshold)
@@ -99,6 +99,7 @@ class Model(object):
         if self.distribution == "NB":
             self.data.convert_floats_to_ints()
         self.data.matrix = numpy.array(self.data.matrix).transpose()
+        logging.debug("Wymiary macierzy: %s", str(self.data.matrix.shape))
 
     def save_states_to_seperate_files(self, output_prefix):
         """
@@ -168,3 +169,10 @@ class Model(object):
         for line in self.model.transmat_:
             output_file.write("\t".join([str(i) for i in line]))
             output_file.write("\n")
+
+    def write_matrix_to_file(self, output_file):
+        for i in self.data.matrix:
+            for j in i:
+                output_file.write(str(j))
+                output_file.write("\n")
+ 
