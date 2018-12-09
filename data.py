@@ -184,7 +184,7 @@ class Data(object):
             pileup = bam.pileup(reference=chromosome)
             first_read = pileup.next().pos
             first_window = first_read / resolution
-            for window in xrange(self.numbers_of_windows[chr_id]):
+            for window in xrange(self.numbers_of_windows[chr_id] + 1):
                 counter += 1
                 if window < first_window:
                     windows.append(0)
