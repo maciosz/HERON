@@ -158,6 +158,7 @@ class Data(object):
         """
         Set chromosome_names, chromosome_ends and numbers_of_windows
         basing on a single bam file.
+        Set window_size to given resolution.
         """
         self.window_size = resolution
         bam = pysam.AlignmentFile(filename)
@@ -165,6 +166,7 @@ class Data(object):
         #self.chromosome_ends = [bam.get_reference_length(chromosome)
         #                           for chromosome in self.chromosome_names]
         # zaleznie od wersji pysama
+        # to nizej jest juz deprecated w najnowszej ale wciaz dziala
         self.chromosome_ends = list(bam.lengths)
         self.numbers_of_windows = [int(math.ceil(length / resolution))
                                    for length in self.chromosome_ends]
@@ -190,10 +192,12 @@ class Data(object):
                 if counter % 100 == 0:
                     logging.debug("%d windows processed", counter)
                 start = window * resolution
-                end = start + window
+                end = start + resolution
                 pileup = bam.pileup(reference=chromosome,
                                     start=start, end=end)
-                value = sum(position.n for position in pileup)
+                value = sum(position.n for position in pileup if start <= position.pos < end)
+                # pileup bierze ready zazebiajace sie z tym regionem
+                # ale w szczegolnosci tez wychodzace z niego
                 mean = float(value) / resolution
                 windows.append(mean)
         logging.debug("Dlugosc tego pliku: %d", len(windows))
@@ -206,9 +210,6 @@ class Data(object):
         Uses the first one as a source of metadata.
 
         files: list of filenames (strings)
-
-        Mozna by zlaczyc te metode bamowa i bedgraphowa,
-        i dorobic takie ktore po rozszerzeniach wiedza co robic.
         """
         self.prepare_metadata_from_bam(files[0])
         for infile in files:
@@ -222,8 +223,8 @@ class Data(object):
                     logging.warning("Warning: your values contain floats,"
                                  " I'm converting them to integers.")
                     # this appears for every file
-                    # kind of annoying, would be better if it did only
-                    # once *or* for each file but togheter with it's name
+                    # kind of annoying, would be better if it did only once
+                    # *or* for each file but togheter with it's name
                     break
         self.matrix = [[int(i) for i in line] for line in self.matrix]
 
@@ -234,7 +235,7 @@ class Data(object):
             self.prepare_metadata_from_bam(filename, resolution)
         else:
             logging.error("Unknown file type: %s",
-                          filename.split(".")[1])
+                          filename.split(".")[-1])
             sys.exit()
 
     def add_data_from_file(self, filename):

@@ -109,13 +109,13 @@ def main():
     logging.debug("Window size: %i", model.data.window_size)
     logging.debug("Chromosome names: %s", str(model.data.chromosome_names))
     logging.debug("Chromosome ends: %s", str(model.data.chromosome_ends))
+    model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
     logging.info("Data ready to analyse. Finding peaks")
     model.predict_states()
     model.save_states_to_seperate_files(arguments.output_prefix)
     model.write_stats_to_file(arguments.output_prefix)
     #if arguments.save_peaks:
     #    pass
-    model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
     logging.info("...done.")
 
 if __name__ == '__main__':

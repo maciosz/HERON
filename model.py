@@ -173,6 +173,8 @@ class Model(object):
     def write_matrix_to_file(self, output_file):
         for i in self.data.matrix:
             for j in i:
+                if j == 0:
+                    j = "0.0"
                 output_file.write(str(j))
                 output_file.write("\n")
  
