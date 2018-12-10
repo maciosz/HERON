@@ -102,7 +102,7 @@ class Data(object):
         output = open(output, 'w')
         for interval in intervals:
             if self.check_condition(condition, interval):
-                if save_value == False:
+                if save_value is False:
                     interval = interval[:-1]
                 output.write('\t'.join(map(str, interval)))
                 output.write('\n')
@@ -138,18 +138,18 @@ class Data(object):
                 self.numbers_of_windows[-1] += 1
             previous_end, previous_chromosome = end, chromosome
         self.chromosome_ends.append(end)
-
-    def add_data_from_bedgraphs(self, files):
-        """
-        Add data from multiple bedgraphs.
-        Uses the first one as a source of metadata.
-
-        files: list of filenames (strings)
-        """
-        self.prepare_metadata_from_bedgraph(files[0])
-        for infile in files:
-            self.add_data_from_bedgraph(infile)
-
+    #
+    #    def add_data_from_bedgraphs(self, files):
+    #        """
+    #        Add data from multiple bedgraphs.
+    #        Uses the first one as a source of metadata.
+    #
+    #        files: list of filenames (strings)
+    #        """
+    #        self.prepare_metadata_from_bedgraph(files[0])
+    #        for infile in files:
+    #            self.add_data_from_bedgraph(infile)
+    #
     #def which_state_is_peaks(self):
     # TODO: check whether mean is the highest among all samples
     #   return self.model.means_.mean(axis=1).argmax()
@@ -202,18 +202,17 @@ class Data(object):
                 windows.append(mean)
         logging.debug("Dlugosc tego pliku: %d", len(windows))
         self.matrix.append(windows)
-        
- 
-    def add_data_from_bams(self, files):
-        """
-        Add data from multiple bams.
-        Uses the first one as a source of metadata.
 
-        files: list of filenames (strings)
-        """
-        self.prepare_metadata_from_bam(files[0])
-        for infile in files:
-            self.add_data_from_bam(infile)
+    #    def add_data_from_bams(self, files):
+    #        """
+    #        Add data from multiple bams.
+    #        Uses the first one as a source of metadata.
+    #
+    #        files: list of filenames (strings)
+    #        """
+    #        self.prepare_metadata_from_bam(files[0])
+    #        for infile in files:
+    #            self.add_data_from_bam(infile)
 
     def convert_floats_to_ints(self):
         #if any(int(self.matrix) != self.matrix):
@@ -221,7 +220,7 @@ class Data(object):
             for value in line:
                 if value != int(value):
                     logging.warning("Warning: your values contain floats,"
-                                 " I'm converting them to integers.")
+                                    " I'm converting them to integers.")
                     # this appears for every file
                     # kind of annoying, would be better if it did only once
                     # *or* for each file but togheter with it's name
@@ -229,6 +228,11 @@ class Data(object):
         self.matrix = [[int(i) for i in line] for line in self.matrix]
 
     def prepare_metadata_from_file(self, filename, resolution):
+        """
+        Set chromosome_names, chromosome_ends and numbers_of_windows
+        basing on a single bedgraph/bam file.
+        Guess the type basing on suffix.
+        """
         if filename.endswith("bedgraph"):
             self.prepare_metadata_from_bedgraph(filename)
         elif filename.endswith("bam"):
@@ -239,6 +243,10 @@ class Data(object):
             sys.exit()
 
     def add_data_from_file(self, filename):
+        """
+        Add data from a single file.
+        Guess the type basing on suffix.
+        """
         if filename.endswith("bedgraph"):
             self.add_data_from_bedgraph(filename)
         elif filename.endswith("bam"):
@@ -248,13 +256,17 @@ class Data(object):
                           filename.split(".")[1])
             sys.exit()
 
-
     def add_data_from_files(self, filenames, resolution):
+        """
+        Add data from multiple files.
+        Use the first one as a source of metadata.
+
+        files: list of filenames (strings)
+        resoluition: desired window size (int)
+            (used only for reading bams)
+        """
         self.prepare_metadata_from_file(filenames[0], resolution)
         for filename in filenames:
             self.add_data_from_file(filename)
         logging.debug("Wymiary macierzy: %d", len(self.matrix))
-        logging.debug("Liczba kolumn:  %d",  len(self.matrix[0]))
- 
-
-
+        logging.debug("Liczba kolumn:  %d", len(self.matrix[0]))

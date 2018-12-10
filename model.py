@@ -30,7 +30,7 @@ class Model(object):
                                    verbose=True)
         elif self.distribution == "NB":
             return hmm.NegativeBinomialHMM(self.number_of_states,
-                                           n_iter=50,
+                                           n_iter=1000,
                                            tol=0.000005,
                                            verbose=True)
 
@@ -109,7 +109,7 @@ class Model(object):
         #print self.data.matrix.transpose() #[-1]
         #print intervals
         output = output_prefix + "_all_states.bed"
-        self.data.save_intervals_as_bed(output, intervals, save_value = True)
+        self.data.save_intervals_as_bed(output, intervals, save_value=True)
         for state in xrange(self.number_of_states):
             output_name = output_prefix + "_state_" + str(state) + ".bed"
             self.data.save_intervals_as_bed(output_name, intervals, state)
@@ -117,7 +117,7 @@ class Model(object):
     def write_stats_to_file(self, output_prefix):
         output = open(output_prefix + "_stats.txt", "w")
         output.write("Score:\t"
-                     + str(self.model.score(numpy.delete(self.data.matrix, -1, axis = 1),
+                     + str(self.model.score(numpy.delete(self.data.matrix, -1, axis=1),
                                             self.data.numbers_of_windows))
                      + '\n')
         # zapisywanie stanow do data.matrix troche zepsulo ten kawalek,
@@ -177,4 +177,3 @@ class Model(object):
                     j = "0.0"
                 output_file.write(str(j))
                 output_file.write("\n")
- 

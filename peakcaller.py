@@ -62,7 +62,7 @@ def parse_arguments():
                         'Should the state with highest mean be saved as peaks?'
                         ' By default it will.'
                         ' If you specify this, it won\'t.')
-    parser.add_argument('--n-peaks', dest = 'n_peaks',
+    parser.add_argument('--n-peaks', dest='n_peaks',
                         action='store', type=float, default=0,
                         help=
                         'How many peaks do you expect,'
