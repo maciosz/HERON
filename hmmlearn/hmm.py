@@ -968,6 +968,7 @@ class NegativeBinomialHMM(_BaseHMM):
         # w multinomial:
         stats = super(MultinomialHMM, self)._initialize_sufficient_statistics()
         stats['obs'] = np.zeros((self.n_components, self.n_features))
+        #stats['x'] = np.zeros((1, self.n_components))
         return stats
 
 
@@ -979,8 +980,25 @@ class NegativeBinomialHMM(_BaseHMM):
         n_samples, n_features = obs.shape
         stats['post'] += posteriors.sum(axis=0)
         stats['obs'] += np.dot(posteriors.T, obs)
-        stats['x'] = obs
-        stats['posteriors'] = posteriors
+        if 'x' not in stats.keys():
+            logging.debug("Pierwszy chromosom")
+            stats['x'] = obs
+            logging.debug("stats[x] shape: %s", str(stats['x'].shape))
+        else:
+            logging.debug("Kolejny chromosom")
+            stats['x'] = np.append(stats['x'], obs, axis=0)
+            logging.debug("stats[x] shape: %s", str(stats['x'].shape))
+        if 'posteriors' not in stats.keys():
+            stats['posteriors'] = posteriors
+        else:
+            stats['posteriors'] = np.append(stats['posteriors'],
+                                            posteriors, axis=0)
+        
+
+
+        #stats['x'] = obs    # achtung - to i to nizej nie zadziala dla wielu chromosomow!
+        #stats['posteriors'] = posteriors
+
         #print(obs.shape)
         #print(self.alpha)
         #stats['t'] += stats['post'] #(obs + self.alpha) #/ (1 + self.beta)
@@ -1058,7 +1076,7 @@ class NegativeBinomialHMM(_BaseHMM):
         cv_den = max(covars_weight - 1, 0) + denom
         covars = (covars_prior + cv_num) / np.maximum(cv_den, 1e-5)
 
-        r_initial = means**2 / (covars - means) # dim: n_comp
+        r_initial = means**2 / (covars - means)
         if np.any(np.isnan(r_initial)):
             print "r_initial jest nan, paczaj:"
             print r_initial
