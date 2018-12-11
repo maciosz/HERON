@@ -66,7 +66,11 @@ class Model(object):
         #logging.debug(str(transmat))
 
     def read_in_files(self, files, resolution):
-        self.data.add_data_from_files(files, resolution)
+        if self.distribution == "NB":
+            mean = False
+        elif self.distribution == "Gauss":
+            mean = True
+        self.data.add_data_from_files(files, resolution, mean)
 
     def filter_data(self, threshold):
         self.data.filter_data(threshold)

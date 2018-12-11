@@ -172,7 +172,7 @@ class Data(object):
                                    for length in self.chromosome_ends]
 
 
-    def add_data_from_bam(self, filename):
+    def add_data_from_bam(self, filename, mean=True):
         """
         Add data from bam file.
         """
@@ -198,8 +198,9 @@ class Data(object):
                 value = sum(position.n for position in pileup if start <= position.pos < end)
                 # pileup bierze ready zazebiajace sie z tym regionem
                 # ale w szczegolnosci tez wychodzace z niego
-                mean = float(value) / resolution
-                windows.append(mean)
+                if mean:
+                    value = float(value) / resolution
+                windows.append(value)
         logging.debug("Dlugosc tego pliku: %d", len(windows))
         self.matrix.append(windows)
 
@@ -242,7 +243,7 @@ class Data(object):
                           filename.split(".")[-1])
             sys.exit()
 
-    def add_data_from_file(self, filename):
+    def add_data_from_file(self, filename, mean):
         """
         Add data from a single file.
         Guess the type basing on suffix.
@@ -250,13 +251,13 @@ class Data(object):
         if filename.endswith("bedgraph"):
             self.add_data_from_bedgraph(filename)
         elif filename.endswith("bam"):
-            self.add_data_from_bam(filename)
+            self.add_data_from_bam(filename, mean)
         else:
             logging.error("Unknown file type: %s",
                           filename.split(".")[1])
             sys.exit()
 
-    def add_data_from_files(self, filenames, resolution):
+    def add_data_from_files(self, filenames, resolution, mean):
         """
         Add data from multiple files.
         Use the first one as a source of metadata.
@@ -267,6 +268,6 @@ class Data(object):
         """
         self.prepare_metadata_from_file(filenames[0], resolution)
         for filename in filenames:
-            self.add_data_from_file(filename)
+            self.add_data_from_file(filename, mean)
         logging.debug("Wymiary macierzy: %d", len(self.matrix))
         logging.debug("Liczba kolumn:  %d", len(self.matrix[0]))
