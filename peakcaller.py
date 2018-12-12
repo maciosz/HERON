@@ -35,12 +35,6 @@ def parse_arguments():
     parser.add_argument('-d', dest='distribution',
                         action='store', type=str, default='NB',
                         help='distribution of emissions; "Gauss" or "NB" (default)')
-    #parser.add_argument('-b', dest='bed_file',
-    #                    action='store', type=str,
-    #                    help='optional bed file (currently not used)')
-    #parser.add_argument('-m', dest='bed_mode',
-    #                    action='store', type=str, default='binary',
-    #                    help='mode for reading in bed file, currently not used')
     parser.add_argument('-t', dest='threshold',
                         action='store', type=int, default=0,
                         help='windows above this value will be considered outliers'

@@ -66,6 +66,12 @@ class Model(object):
         #logging.debug(str(transmat))
 
     def read_in_files(self, files, resolution):
+        """
+        Read in files given as a list of strings.
+        The data structure actually does all the work.
+        Resolution is needed only for reading bams;
+        it's ignored when all the data are bedgraphs.
+        """
         if self.distribution == "NB":
             mean = False
         elif self.distribution == "Gauss":
@@ -73,12 +79,26 @@ class Model(object):
         self.data.add_data_from_files(files, resolution, mean)
 
     def filter_data(self, threshold):
+        """
+        Filter the data above threshold.
+        """
         self.data.filter_data(threshold)
 
     def fit_HMM(self):
+        """
+        Fit the HMM using Baum-Welch algorithm.
+        That is - estimate the parameters of HMM
+        basing on the data, using EM approach.
+        """
         self.model.fit(self.data.matrix, lengths=self.data.numbers_of_windows)
 
     def predict_states(self):
+        """
+        Predict the states in the data.
+        First needs to prepare the data
+        and fit the model.
+        Add predicted states to the data matrix.
+        """
         logging.info("predicting states, stay tuned")
         logging.info("prepairing data")
         self.prepair_data()
@@ -100,6 +120,10 @@ class Model(object):
         #return states
 
     def prepair_data(self):
+        """
+        Changes data matrix to numpy array and transposes it.
+        For NB distribution converts floats to ints.
+        """
         if self.distribution == "NB":
             self.data.convert_floats_to_ints()
         self.data.matrix = numpy.array(self.data.matrix).transpose()
@@ -107,11 +131,11 @@ class Model(object):
 
     def save_states_to_seperate_files(self, output_prefix):
         """
-        Assumes states are in the last row of the data matrix.
+        Changes states to intervals and saves them to seperate files.
+        Also writes one bed file with all the states.
+        Assumes the states are in the last row of the data matrix.
         """
         intervals = self.data.windows_to_intervals(-1)
-        #print self.data.matrix.transpose() #[-1]
-        #print intervals
         output = output_prefix + "_all_states.bed"
         self.data.save_intervals_as_bed(output, intervals, save_value=True)
         for state in xrange(self.number_of_states):
@@ -119,6 +143,9 @@ class Model(object):
             self.data.save_intervals_as_bed(output_name, intervals, state)
 
     def write_stats_to_file(self, output_prefix):
+        """
+        Write various statistics to a file `output_prefix`_stats.txt
+        """
         output = open(output_prefix + "_stats.txt", "w")
         output.write("Score:\t"
                      + str(self.model.score(numpy.delete(self.data.matrix, -1, axis=1),
@@ -126,13 +153,9 @@ class Model(object):
                      + '\n')
         # zapisywanie stanow do data.matrix troche zepsulo ten kawalek,
         # musze usuwac ostatnia kolumne tutaj ^
-        #output.write("Probability: " + str(self.probability) + '\n')
         self.write_probability_to_file(output)
-        #output.write("Transition matrix: \n" + str(self.model.transmat_) + '\n')
         self.write_transmat_to_file(output)
-        #output.write("Means: \n" + str(self.model.means_) + '\n')
         self.write_means_to_file(output)
-        #output.write("Covars: \n" + str(self.model.covars_) + '\n')
         self.write_covars_to_file(output)
         output.write("Mean length: TODO\n")
         output.close()
@@ -175,6 +198,10 @@ class Model(object):
             output_file.write("\n")
 
     def write_matrix_to_file(self, output_file):
+        """
+        Write the whole data matrix to file.
+        Created mainly for debugging purposes.
+        """
         for i in self.data.matrix:
             for j in i:
                 if j == 0:

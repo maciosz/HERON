@@ -10,7 +10,8 @@ class Data(object):
     """
     Object for reading, storing and writing data
     from bams, coverages and intervals.
-    Ok, just coverages.
+    Okay, read from bam and coverage,
+    write to intervals.
     """
 
     def __init__(self):
@@ -69,7 +70,7 @@ class Data(object):
         previous_chromosome = 0
         window = -1
         for value in self.matrix[which_line]:
-            chromosome, window = self.goto_next_window(previous_chromosome, window)
+            chromosome, window = self._goto_next_window(previous_chromosome, window)
             if chromosome != previous_chromosome:
                 end = self.chromosome_ends[previous_chromosome]
             elif value != previous_value and previous_value is not None:
@@ -85,7 +86,7 @@ class Data(object):
         self.matrix = self.matrix.transpose()
         return output
 
-    def goto_next_window(self, chromosome, window):
+    def _goto_next_window(self, chromosome, window):
         window += 1
         if window > self.numbers_of_windows[chromosome] - 1:
             chromosome += 1
@@ -101,20 +102,23 @@ class Data(object):
         """
         output = open(output, 'w')
         for interval in intervals:
-            if self.check_condition(condition, interval):
+            if self._check_condition(condition, interval):
                 if save_value is False:
                     interval = interval[:-1]
                 output.write('\t'.join(map(str, interval)))
                 output.write('\n')
         output.close()
 
-    def check_condition(self, condition, interval):
+    def _check_condition(self, condition, interval):
         if condition is None:
             return True
         value = interval[-1]
         return value == condition
 
     def add_data_from_bedgraph(self, filename):
+        """
+        Add coverage data from single bedgraph file.
+        """
         logging.info("reading in file %s", filename)
         self.matrix.append([float(line.strip().split()[-1]) for line in open(filename)])
 
@@ -138,18 +142,7 @@ class Data(object):
                 self.numbers_of_windows[-1] += 1
             previous_end, previous_chromosome = end, chromosome
         self.chromosome_ends.append(end)
-    #
-    #    def add_data_from_bedgraphs(self, files):
-    #        """
-    #        Add data from multiple bedgraphs.
-    #        Uses the first one as a source of metadata.
-    #
-    #        files: list of filenames (strings)
-    #        """
-    #        self.prepare_metadata_from_bedgraph(files[0])
-    #        for infile in files:
-    #            self.add_data_from_bedgraph(infile)
-    #
+
     #def which_state_is_peaks(self):
     # TODO: check whether mean is the highest among all samples
     #   return self.model.means_.mean(axis=1).argmax()
@@ -171,11 +164,12 @@ class Data(object):
         self.numbers_of_windows = [int(math.ceil(length / resolution))
                                    for length in self.chromosome_ends]
 
-
     def add_data_from_bam(self, filename, mean=True):
         """
-        Add data from bam file.
+        Add coverage data from bam file.
+        Assumes some metadata is already added.
         """
+        logging.info("reading in file %s", filename)
         resolution = self.window_size
         bam = pysam.AlignmentFile(filename)
         windows = []
@@ -203,30 +197,6 @@ class Data(object):
                 windows.append(value)
         logging.debug("Dlugosc tego pliku: %d", len(windows))
         self.matrix.append(windows)
-
-    #    def add_data_from_bams(self, files):
-    #        """
-    #        Add data from multiple bams.
-    #        Uses the first one as a source of metadata.
-    #
-    #        files: list of filenames (strings)
-    #        """
-    #        self.prepare_metadata_from_bam(files[0])
-    #        for infile in files:
-    #            self.add_data_from_bam(infile)
-
-    def convert_floats_to_ints(self):
-        #if any(int(self.matrix) != self.matrix):
-        for line in self.matrix:
-            for value in line:
-                if value != int(value):
-                    logging.warning("Warning: your values contain floats,"
-                                    " I'm converting them to integers.")
-                    # this appears for every file
-                    # kind of annoying, would be better if it did only once
-                    # *or* for each file but togheter with it's name
-                    break
-        self.matrix = [[int(i) for i in line] for line in self.matrix]
 
     def prepare_metadata_from_file(self, filename, resolution):
         """
@@ -271,3 +241,16 @@ class Data(object):
             self.add_data_from_file(filename, mean)
         logging.debug("Wymiary macierzy: %d", len(self.matrix))
         logging.debug("Liczba kolumn:  %d", len(self.matrix[0]))
+
+    def convert_floats_to_ints(self):
+        #if any(int(self.matrix) != self.matrix):
+        for line in self.matrix:
+            for value in line:
+                if value != int(value):
+                    logging.warning("Warning: your values contain floats,"
+                                    " I'm converting them to integers.")
+                    # this appears for every file
+                    # kind of annoying, would be better if it did only once
+                    # *or* for each file but togheter with it's name
+                    break
+        self.matrix = [[int(i) for i in line] for line in self.matrix]

@@ -4,7 +4,7 @@ Preliminary test version of beta version.
 
 The program attempts to identify sites of enrichment
  in the signal from NGS data;
- it takes coverages of mapped reads as an input
+ it takes coverages or bams of mapped reads as an input
  and returns bed file with coordinates of peaks,
  i.e. sites of presumed enrichment.
 
@@ -21,6 +21,9 @@ possibly with
 -t - threshold for outliers; windows higher than that will be considered outliers
      and replaced with median value from the whole genome (excluding outliers);
      0 (default) means no threshold
+-r - resolution, that is the desired window size.
+     Used only for reading bams, has no effect on bedgraphs.
+     By default it's 200.
 --dont-save - do not save one of the states as peaks
 --n-peaks - how many peaks we expect (as fraction of the whole genome);
             it's used to generate initial transition matrix;
@@ -29,16 +32,16 @@ possibly with
 
 Current output:
  generates
- # file '[prefix]_all_states.txt' with, well, states
- # can be pasted with windows.bed, awked and used as bed with states
- # (do I still need this file?) (I guess not, but just in case I only comment it, not remove yet)
- # ...and now also 
- ready files [prefix]_state_[x].bed.
+ file '[prefix]_all_states.bed' with all states,
+ marked in the 3rd column and
+ files [prefix]_state_[x].bed.
  Also, generates [prefix].log with log messages
  and [prefix]_stats.txt with some statistics.
  Checks which state has the highest mean coverage over samples,
  assumes it denotes peaks and copies file [prefix]_state_x.bed to [prefix]_peaks.bed.
  Unless you add --dont-save argument, then it doesn't.
+ ...actually, it doesn't do that at the moment,
+ so --dont-save has no effect.
 
 Warning.
 Assumes that bedgraphs 
@@ -58,5 +61,6 @@ Assumes that bedgraphs
  and distribution is set to Negative Binomial,
  program will convert them to integers
  (we don't mind floats with Gauss).
+ Can read bams, but do it much longer than bedgraphs.
 
 Tested on python 2.7. Won't work with python3.

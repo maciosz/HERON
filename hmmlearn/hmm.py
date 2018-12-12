@@ -9,12 +9,9 @@
 """
 The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
-
-import math
 import logging
 import numpy as np
 from scipy.stats import nbinom, norm
-from scipy.special import digamma, polygamma
 from sklearn import cluster
 from sklearn.mixture import (
     GMM, sample_gaussian,
@@ -194,23 +191,17 @@ class GaussianHMM(_BaseHMM):
             kmeans.fit(X)
             #self.means_ = kmeans.cluster_centers_
             means = kmeans.cluster_centers_
-            #logging.debug("MEANS:", means)
             means = np.sort(means, axis = 0)
-            #logging.debug("MEANS:", means)
             self.means_ = means
  
         if 'c' in self.init_params or not hasattr(self, "covars_"):
             cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
-            #logging.debug("CV:", cv)
             if not cv.shape:
                 cv.shape = (1, 1)
             self._covars_ = distribute_covar_matrix_to_match_covariance_type(
                 cv, self.covariance_type, self.n_components).copy()
-            #logging.debug("COVARS:", self._covars_)
 
     def _compute_log_likelihood(self, X):
-        #logging.debug("argumenty dla log_multivariate_normal_density:")
-        #logging.debug(self.means_, self._covars_)
         return log_multivariate_normal_density(
             X, self.means_, self._covars_, self.covariance_type)
 
@@ -224,8 +215,6 @@ class GaussianHMM(_BaseHMM):
     #            log_likelihood[i, j] = np.sum(norm.logpdf(X[i,:],
     #                                          means[j,:], math.sqrt(covars[j,:])))
     #    return log_likelihood
-
-
 
     def _generate_sample_from_state(self, state, random_state=None):
         if self.covariance_type == 'tied':
@@ -248,30 +237,13 @@ class GaussianHMM(_BaseHMM):
     def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):
 
-        #logging.debug("Accumulate_sufficient_statistics, stats:")
-        #for key, value in stats.items():
-        #    logging.debug(key)
-        #    logging.debug((value)
-
         super(GaussianHMM, self)._accumulate_sufficient_statistics(
             stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice)
-
-        #logging.debug("Accumulate_sufficient_statistics, stats po raz drugi:")
-        #for key, value in stats.items():
-        #    logging.debug(key)
-        #    logging.debug(value)
-
-        #logging.debug("wymiar posteriors:", posteriors.shape)
 
         if 'm' in self.params or 'c' in self.params:
             
             stats['post'] += posteriors.sum(axis=0)
-            #logging.debug( "w accumulate w hmm stats[post]:")
-            #logging.debug( stats['post'])
-            #logging.debug( "Czy wszystkie posteriors w kolumnie rowne zero:")
-            #logging.debug( np.all(posteriors == 0, axis=0))
             stats['obs'] += np.dot(posteriors.T, obs)
-            #logging.debug( "wymiary stats[post] i stats[obs]:", stats['post'].shape, stats['obs'].shape)
 
         if 'c' in self.params:
             if self.covariance_type in ('spherical', 'diag'):
@@ -282,21 +254,11 @@ class GaussianHMM(_BaseHMM):
                 stats['obs*obs.T'] += np.einsum(
                     'ij,ik,il->jkl', posteriors, obs, obs)
 
-        #logging.debug("Accumulate_sufficient_statistics, stats po raz trzeci:")
-        #for key, value in stats.items():
-        #    logging.debug(key)
-        #    logging.debug(value)
-
-        
     def _do_mstep(self, stats):
         super(GaussianHMM, self)._do_mstep(stats)
 
         means_prior = self.means_prior
         means_weight = self.means_weight
-        #logging.debug("Mstep; means_prior, weight:")
-        #logging.debug(means_prior)
-        #logging.debug(means_weight)
-
 
         # TODO: find a proper reference for estimates for different
         #       covariance models.
@@ -304,15 +266,10 @@ class GaussianHMM(_BaseHMM):
         # p. 443 - 445
         #logging.debug("stats[post]:", stats['post'])
         denom = stats['post'][:, np.newaxis]
-        #logging.debug("denom:")
-        #logging.debug(denom)
         if 'm' in self.params:
             logging.debug("stare means:")
             logging.debug(self.means_)
-            #logging.debug("Uaktualniamy m; denom, stats[obs], nowe means:")
             logging.debug("nowe means:")
-            #logging.debug(denom)
-            #logging.debug(stats['obs'])
             self.means_ = ((means_weight * means_prior + stats['obs'])
                            / (means_weight + denom))
             logging.debug(self.means_)
@@ -800,12 +757,8 @@ class NegativeBinomialHMM(_BaseHMM):
                           init_params=init_params)
         self.p = p
         self.r = r
-        self.alpha = self.r
-        self.beta = (1 - self.p) / self.p
         self.means_ = m  # means?
         self.covars_ = s  # sdev?
-        # byc moze wole trzymac srednia i wariancje
-        # albo jakas kombinacje tych dwoch wariantow
         self.min_covar = min_covar
         self.covars_prior = covars_prior
         self.covars_weight = covars_weight
@@ -824,9 +777,7 @@ class NegativeBinomialHMM(_BaseHMM):
                                     random_state=self.random_state)
             kmeans.fit(X)
             means = kmeans.cluster_centers_
-            #logging.debug("MEANS:", means)
             means = np.sort(means, axis = 0)
-            #logging.debug("MEANS:", means)
             self.means_ = means
             cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
             if not cv.shape:
@@ -835,51 +786,11 @@ class NegativeBinomialHMM(_BaseHMM):
                 cv, 'diag', self.n_components).copy()
             if cv.min() < means.max():
                 cv += means.max()
-            #logging.debug("CV:", cv)
             self.covars_ = cv
         if 'p' in self.init_params or not hasattr(self, "p"):
             self.p = 1 - ((cv-means) / cv)
-            #logging.debug("P:", self.p)
         if 'r' in self.init_params or not hasattr(self, "r"):
             self.r = means**2 / (cv - means)
-        self.alpha = self.r
-        self.beta = (1 - self.p) / self.p
-            #logging.debug("R:", self.r)
-        #logging.debug("transmat:", self.transmat_)
- 
-
-        """ w Multinomial:
-         if not self._check_input_symbols(X):
-                    raise ValueError("expected a sample from "
-                                     "a Multinomial distribution.")
-
-                super(MultinomialHMM, self)._init(X, lengths=lengths)
-                self.random_state = check_random_state(self.random_state)
-
-                if 'e' in self.init_params:
-                    if not hasattr(self, "n_features"):
-                        symbols = set()
-                        for i, j in iter_from_X_lengths(X, lengths):
-                            symbols |= set(X[i:j].flatten())
-                        self.n_features = len(symbols)
-                    self.emissionprob_ = self.random_state \
-                        .rand(self.n_components, self.n_features)
-                    normalize(self.emissionprob_, axis=1)
-        # w Gaussian jest jeszcze takie cos -
-        # szacowanie srednich i kowariancji
-        if 'm' in self.init_params or not hasattr(self, "means_"):
-            kmeans = cluster.KMeans(n_clusters=self.n_components,
-                                    random_state=self.random_state)
-            kmeans.fit(X)
-            self.means_ = kmeans.cluster_centers_
-        if 'c' in self.init_params or not hasattr(self, "covars_"):
-            cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
-            if not cv.shape:
-                cv.shape = (1, 1)
-            self._covars_ = distribute_covar_matrix_to_match_covariance_type(
-                cv, self.covariance_type, self.n_components).copy()
-        """
-
 
     def _check(self):
         super(NegativeBinomialHMM, self)._check()
@@ -895,82 +806,32 @@ class NegativeBinomialHMM(_BaseHMM):
         """
 
     def _compute_log_likelihood(self, X):
-        #logging.debug("compute log likelihood startprob:", self.startprob_)
         n_observations, n_dim = X.shape
-        #logging.debug("n_dim:", n_dim)
-        #logging.debug("n_features:", self.n_features)
-        #n_dim i n_features to to samo
-        #logging.debug("n_observations:", n_observations)
-        #logging.debug("n_components:", self.n_components)
         r, p = self.r, self.p
         log_likelihood = np.ndarray((n_observations, self.n_components))
         for i in xrange(n_observations):
             for j in xrange(self.n_components):
-                #print "log_likelihood, i = %d, j = %d" % (i, j)
-                #logging.debug("X:", X[i,:])
-                #print "r:", r[j,:]
-                #print "p:", p[j,:]
                 log_likelihood[i, j] = np.sum(nbinom.logpmf(X[i,:], r[j,:], p[j,:]))
-                #print "log_likelihood = %f" % log_likelihood[i, j]
-                #if log_likelihood[i,j] == -1 * np.inf:
-                #    logging.debug("Uwaga, zle likelihood w iteracji nr:", i, j)
-                #    logging.debug("likelihood:", log_likelihood[i,j])
-                #    logging.debug("X:", X[i,:])
-                #    logging.debug("r:", r[j:])
-                #    logging.debug("p:", p[j,:])
-                    
-        #       czy na pewno suma?
-        #       no tak, a co innego
-        #        log_likelihood[i,j] = (np.sum(np.log(factorial(X[i,:]+r[:,j])))
-        #                         - np.sum(np.log(factorial(X[i,:])))
-        #                         - n_dim * np.log(factorial(r[:,j]))
-        #                         + np.sum(X[i,:] * np.log(p[:,j]))
-        #                         + n_dim * r[:,j] * np.log(1-p[:,j]))
-        #                           to jest niewlasciwego wymiaru
-        #                           jest wymiaru (n_features,),
-        #                           czyli tyle ile jest bedgraphow
-        #                           powinno sie to, hm, wymnozyc? dodac?
-        #logging.debug("log_likelihood:")
-        #logging.debug(log_likelihood)
-        #if np.any(log_likelihood == -1 * np.inf):
-        #    logging.debug("means:")
-        #    logging.debug(self.means_)
-        #    logging.debug("covars:")
-        #    logging.debug(self.covars_)
         return log_likelihood
 
 
 
     def _generate_sample_from_state(self, state, random_state=None):
-        #cv = self.covars_
-        #means = self.means_
         p = self.p
         r = self.r
-        #if 'p' in self.init_params or not hasattr(self, "p"):
-        #    self.p = 1 - ((cv-means) / cv)
-        #if 'r' in self.init_params or not hasattr(self, "r"):
-        #    self.r = means**2 / (cv - means)
         return [nbinom(self.r[state][feature], self.p[state][feature]).rvs()
                 for feature in xrange(self.n_features)]
 
     def _initialize_sufficient_statistics(self):
         stats = super(NegativeBinomialHMM, self)._initialize_sufficient_statistics()
-        #n_features, n_samples = obs.shape
-        #stats['t'] = np.zeros((self.n_components,1 ))
-            #stats['s'] = np.zeros((self.n_components, 1))#, n_samples)
         stats['post'] = np.zeros(self.n_components)
         stats['obs'] = np.zeros((self.n_components, self.n_features))
         stats['obs**2'] = np.zeros((self.n_components, self.n_features))
         #if self.covariance_type in ('tied', 'full'):
         #    stats['obs*obs.T'] = np.zeros((self.n_components, self.n_features,
         #                                   self.n_features))
-        return stats
-        # w multinomial:
-        stats = super(MultinomialHMM, self)._initialize_sufficient_statistics()
-        stats['obs'] = np.zeros((self.n_components, self.n_features))
         #stats['x'] = np.zeros((1, self.n_components))
         return stats
-
 
     def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):
@@ -980,6 +841,7 @@ class NegativeBinomialHMM(_BaseHMM):
         n_samples, n_features = obs.shape
         stats['post'] += posteriors.sum(axis=0)
         stats['obs'] += np.dot(posteriors.T, obs)
+        stats['obs**2'] += np.dot(posteriors.T, obs ** 2)
         if 'x' not in stats.keys():
             logging.debug("Pierwszy chromosom")
             stats['x'] = obs
@@ -994,79 +856,18 @@ class NegativeBinomialHMM(_BaseHMM):
             stats['posteriors'] = np.append(stats['posteriors'],
                                             posteriors, axis=0)
         
-
-
         #stats['x'] = obs    # achtung - to i to nizej nie zadziala dla wielu chromosomow!
         #stats['posteriors'] = posteriors
-
-        #print(obs.shape)
-        #print(self.alpha)
-        #stats['t'] += stats['post'] #(obs + self.alpha) #/ (1 + self.beta)
-        #stats['t'] = posteriors
-        #for line in obs:
-        #    t = (line + self.alpha) / (1 + self.beta)
-        #    s = digamma(line + self.alpha) - np.log(self.beta + 1)
-        #    #print "stats[s]:", stats['s'].shape
-        #    #print "s:", s.shape
-        #    stats['t'] = np.append(stats['t'], t, axis=1)
-        #    stats['s'] = np.append(stats['s'], s, axis=1)
-        #stats['t'] = np.delete(stats['t'], 0, axis=1)
-        #stats['s'] = np.delete(stats['s'], 0, axis=1)
-        #alpha = np.repeat(self.alpha, n_samples, axis = 1).T
-        #print(alpha.shape)
-        #s = digamma(alpha + obs) - np.log(self.beta + 1).T
-        #s_means = np.mean(s, axis=0)
-        #print("s shape:")
-        #print(s.shape)
-        #print("t shape:")
-        #print(stats['t'].shape)
-        #print("s_means shape:")
-        #print(s_means.shape)
-        #print("stats[s] shape:")
-        #print(stats['s'].shape)
-        #stats['s'] += s.T #np.mean(s, axis=0)
-        #stats['obs'] += np.dot(posteriors.T, obs)
-        stats['obs**2'] += np.dot(posteriors.T, obs ** 2)
-
-
-        """
-        if 'm' in self.params or 'c' in self.params:
-            stats['post'] += posteriors.sum(axis=0)
-            stats['obs'] += np.dot(posteriors.T, obs)
-
-        if 'c' in self.params:
-            if self.covariance_type in ('spherical', 'diag'):
-                stats['obs**2'] += np.dot(posteriors.T, obs ** 2)
-            elif self.covariance_type in ('tied', 'full'):
-                # posteriors: (nt, nc); obs: (nt, nf); obs: (nt, nf)
-                # -> (nc, nf, nf)
-                stats['obs*obs.T'] += np.einsum(
-                    'ij,ik,il->jkl', posteriors, obs, obs)
-        # w multinomial:
-        super(MultinomialHMM, self)._accumulate_sufficient_statistics(
-            stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
-        if 'e' in self.params:
-            for t, symbol in enumerate(np.concatenate(X)):
-                stats['obs'][:, symbol] += posteriors[t]
-        """
 
     def _do_mstep(self, stats):
         super(NegativeBinomialHMM, self)._do_mstep(stats)
 
-        #print "update p"
-        #print "stats[obs] shape:", stats['obs'].shape
-        #print "stats[post] shape:", stats['post'][:, np.newaxis].shape
-        #print "r shape:", self.r.shape
-        #print "self.r * stats[post] shape:", (self.r * stats['post'][:, np.newaxis]).shape
-        
         p = stats['obs'] / (self.r * stats['post'][:, np.newaxis] + stats['obs'])
         logging.debug("new p: %s", str(self.p))
 
         # p = ( sum_t (P_t * o_t) ) / ( r * sum_t P_t + sum_t (P_t * o_t)  )
 
-
         denom = stats['post'][:, np.newaxis]
-        #logging.debug("denom: %s", str(denom))
         means = stats['obs'] / denom
         covars_prior = self.covars_prior
         covars_weight = self.covars_weight
@@ -1089,88 +890,3 @@ class NegativeBinomialHMM(_BaseHMM):
             
         self.means_ = self.p * self.r / (1 - self.p)
         self.covars_ = self.p * self.r / (1 - self.p) ** 2
-
-
-
-        """
-        mean_t = np.mean(stats['t'], axis=1)[:, np.newaxis]
-        beta = self.alpha / mean_t
-        #print "beta", beta.shape
-        print "Uaktualniamy beta:"
-        print "self.alpha:", self.alpha
-        print "np.mean(stats[t]):", mean_t
-        self.beta = beta
-        
-        mean_s = np.mean(stats['s'], axis=1)[:, np.newaxis]
-        num = digamma(self.alpha) + np.log(self.beta) - mean_s
-        print "beta:", self.beta
-        print "Uaktualniamy alpha:"
-        print "np.log beta:", np.log(self.beta)
-        print "np.mean(stats[s]):", mean_s
-        print "num:", num
-        denom = polygamma(1, self.alpha)
-        print "denom:", denom
-        alpha = self.alpha - num / denom
-        print "alpha:", alpha
-        self.alpha = alpha
-
-        self.r = self.alpha
-        self.p = 1 / (1 + self.beta)
-
-        self.means_ = self.p * self.r / (1 - self.p)
-        self.covars_ = self.p * self.r / (1 - self.p) ** 2
-        """
-        """
-        #logging.debug("stats[post]: %s", str(stats['post']))
-        denom = stats['post'][:, np.newaxis]
-        #logging.debug("denom: %s", str(denom))
-        if 'm' in self.params:
-            means = stats['obs'] / denom
-            self.means_ = means
-
-        if 'c' in self.params:
-            covars_prior = self.covars_prior
-            covars_weight = self.covars_weight
-
-            cv_num = (stats['obs**2']
-                      - 2 * means * stats['obs']
-                      + means**2 * denom)
-            #cv_den = denom
-            cv_den = max(covars_weight - 1, 0) + denom
-            covars = (covars_prior + cv_num) / np.maximum(cv_den, 1e-5)
-            self.covars_ = covars
-
-        #logging.debug("mstep, prawie koniec; means:", means)
-        #logging.debug("mstep, prawie koniec; covars:", covars)
-
-        #if not np.all(covars > means):
-        if np.any(covars <= means):
-            logging.debug("covars <= means")
-            self.covars_le_means += 1
-            covars = np.ones((self.n_components, self.n_features)) * (means.max() + 1)
-            # powinnam zwiekszac tylko wariancje tego stanu.
-        else:
-            logging.debug("covars ok")
-      
-
-        #logging.debug("mstep, koniec; means:", means
-        #logging.debug("mstep, koniec; covars:", covars
-
-        if 'p' in self.params:
-            self.p = 1 - ( (covars-means) / covars)
-
-            #logging.debug("mstep, koniec; p:")
-            #logging.debug(self.p)
-
-        if 'r' in self.params:
-            self.r = means**2 / (covars - means)
-            #logging.debug("mstep, koniec; r:")
-            #logging.debug(self.r)
-        """
-
-
-def factorial(x):
-    f = np.vectorize(math.factorial)
-    return f(x)
-
-

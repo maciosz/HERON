@@ -92,6 +92,8 @@ class ConvergenceMonitor(object):
         """``True`` if the EM algorithm converged and ``False`` otherwise."""
         # XXX we might want to check that ``logprob`` is non-decreasing.
         # We HAVE to do that.
+        # ...and we should return some warning if it does,
+        # because it shouldn't happen in EM algorithm.
         return (self.iter == self.n_iter or
                 (len(self.history) == 2 and
                  self.history[1] - self.history[0] < self.tol
@@ -428,31 +430,15 @@ class _BaseHMM(BaseEstimator):
 
         self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
         for iter in range(self.n_iter):
-            #logging.debug(self.transmat_)
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
             for i, j in iter_from_X_lengths(X, lengths):
-                #print("base.py, fit, wewnatrz petli, i, j:")
-                #print(i)
-                #print(j)
                 framelogprob = self._compute_log_likelihood(X[i:j])
-                #logging.debug("Framelogprob:")
-                #logging.debug(framelogprob)
                 logprob, fwdlattice = self._do_forward_pass(framelogprob)
                 curr_logprob += logprob
                 if (not curr_logprob < 10) and (not curr_logprob > 10):
                     logging.debug("Curr_logprob jest nan")
-                    #logging.debug("Framelogprob:")
-                    #logging.debug(framelogprob)
-                    #logging.debug("X[i:j]:")
-                    #logging.debug(X[i:j])
-                    #logging.debug("Logprob:")
-                    #logging.debug(logprob)
-                #logging.debug("Fwdlattice:")
-                #logging.debug(fwdlattice)
                 bwdlattice = self._do_backward_pass(framelogprob)
-                #logging.debug("Bwdlattice:")
-                #logging.debug(bwdlattice)
                 posteriors = self._compute_posteriors(fwdlattice, bwdlattice)
                 self._accumulate_sufficient_statistics(
                     stats, X[i:j], framelogprob, posteriors, fwdlattice,
@@ -462,9 +448,6 @@ class _BaseHMM(BaseEstimator):
             self._do_mstep(stats)
 
             self.monitor_.report(curr_logprob)
-            #logging.debug("Po monitorowaniu:")
-            #logging.debug(curr_logprob)
-            #logging.debug(type(curr_logprob))
             if self.monitor_.converged:
                 break
 
@@ -480,26 +463,10 @@ class _BaseHMM(BaseEstimator):
     def _do_forward_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         fwdlattice = np.zeros((n_samples, n_components))
-        #print("n_samples, n_components,log(startprob), log(transmat), framelogprob, bwdlattice:")
-        #print(n_samples, n_components)
-        #print(np.log(self.startprob_).shape)
-        #print(np.log(self.transmat_).shape)
-        #print(framelogprob.shape)
-        #print(fwdlattice.shape)
         _hmmc._forward(n_samples, n_components,
                        np.log(self.startprob_),
                        np.log(self.transmat_),
                        framelogprob, fwdlattice)
-        logging.debug("pierwsze dwa rzedy fwdlattice:")
-        logging.debug(str(fwdlattice[0]))
-        logging.debug(str(fwdlattice[1]))
-        logging.debug("ostatnie dwa rzedy fwdlattice:")
-        logging.debug(str(fwdlattice[-2]))
-        logging.debug(str(fwdlattice[-1]))
-        logging.debug("i ostatni logsumexp (czyli logprob):")
-        logging.debug(str(logsumexp(fwdlattice[-1])))
-        logging.debug("czy wszystkie wartosci w danym stanie sa -inf:")
-        logging.debug(str(np.all(fwdlattice == -np.inf, axis=0)))
         return logsumexp(fwdlattice[-1]), fwdlattice
 
     def _do_backward_pass(self, framelogprob):
@@ -509,15 +476,6 @@ class _BaseHMM(BaseEstimator):
                         np.log(self.startprob_),
                         np.log(self.transmat_),
                         framelogprob, bwdlattice)
-        logging.debug("pierwsze dwa rzedy bwdlattice:")
-        logging.debug(str(bwdlattice[0]))
-        logging.debug(str(bwdlattice[1]))
-        logging.debug("ostatnie dwa rzedy bwdlattice:")
-        logging.debug(str(bwdlattice[-2]))
-        logging.debug(str(bwdlattice[-1]))
-        logging.debug("czy wszystkie wartosci w danym stanie sa -inf:")
-        logging.debug(str(np.all(bwdlattice == -np.inf, axis=0)))
- 
         return bwdlattice
 
     def _compute_posteriors(self, fwdlattice, bwdlattice):
@@ -526,13 +484,7 @@ class _BaseHMM(BaseEstimator):
         # So, we will normalize each frame explicitly in case we
         # pruned too aggressively.
         log_gamma = fwdlattice + bwdlattice
-        #logging.debug("log_gamma:")
-        #logging.debug(log_gamma)
         log_normalize(log_gamma, axis=1)
-        #logging.debug("normalised:")
-        #logging.debug(log_gamma)
-        #logging.debug("posteriors (exp):")
-        #logging.debug(np.exp(log_gamma))
         return np.exp(log_gamma)
 
     def _init(self, X, lengths):
@@ -550,9 +502,7 @@ class _BaseHMM(BaseEstimator):
         init = 1. / self.n_components
         if 's' in self.init_params or not hasattr(self, "startprob_"):
             self.startprob_ = np.full(self.n_components, init)
-            #logging.debug(self.startprob_)
         if 't' in self.init_params or not hasattr(self, "transmat_"):
-            #logging.debug("UWAGA inicjalizuje transmat!")
             self.transmat_ = np.full((self.n_components, self.n_components),
                                      init)
 
@@ -694,29 +644,15 @@ class _BaseHMM(BaseEstimator):
         # The ``np.where`` calls guard against updating forbidden states
         # or transitions in e.g. a left-right HMM.
         if 's' in self.params:
-            #logging.debug("m_step startprob 1:")
-            #logging.debug(self.startprob_)
-            #logging.debug("stats[start]:")
-            #logging.debug(stats['start'])
             startprob_ = self.startprob_prior - 1.0 + stats['start']
             self.startprob_ = np.where(self.startprob_ == 0.0,
                                        self.startprob_, startprob_)
-            #logging.debug("m_step startprob 2:")
-            #logging.debug(self.startprob_)
             normalize(self.startprob_)
-            #logging.debug("m_step startprob 3:")
-            #logging.debug(self.startprob_)
         if 't' in self.params:
             logging.debug("aktualizuje transmat")
-            #logging.debug("Stats['trans']:")
-            #logging.debug(stats['trans'])
             transmat_ = self.transmat_prior - 1.0 + stats['trans']
-            #logging.debug("Obiekt transmat_:")
-            #logging.debug(transmat_)
             self.transmat_ = np.where(self.transmat_ == 0.0,
                                       self.transmat_, transmat_)
-            #logging.debug("self.transmat_ przed normalizacja:")
-            #logging.debug(self.transmat_)
             normalize(self.transmat_, axis=1)
             logging.debug("I po:")
             logging.debug(self.transmat_)
