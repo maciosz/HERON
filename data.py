@@ -176,14 +176,21 @@ class Data(object):
         counter = 0
         for chr_id, chromosome in enumerate(self.chromosome_names):
             pileup = bam.pileup(reference=chromosome)
-            first_read = pileup.next().pos
+            try:
+                first_read = pileup.next().pos
+            except StopIteration:
+                windows.extend([0] * self.numbers_of_windows[chr_id])
+                continue
+                # no reads mapped to this chromosom
+                # should I remove these chromosomes
+                # or add zeros?
             first_window = first_read / resolution
             for window in xrange(self.numbers_of_windows[chr_id] + 1):
                 counter += 1
                 if window < first_window:
                     windows.append(0)
                     continue
-                if counter % 100 == 0:
+                if counter % 1000 == 0:
                     logging.debug("%d windows processed", counter)
                 start = window * resolution
                 end = start + resolution
@@ -192,6 +199,7 @@ class Data(object):
                 value = sum(position.n for position in pileup if start <= position.pos < end)
                 # pileup bierze ready zazebiajace sie z tym regionem
                 # ale w szczegolnosci tez wychodzace z niego
+                # also jesli jest pusty to to bedzie zero, wiec ok
                 if mean:
                     value = float(value) / resolution
                 windows.append(value)

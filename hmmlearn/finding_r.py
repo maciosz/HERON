@@ -1,15 +1,10 @@
 #!/usr/bin/python
 
-# nie dziala dla wielowymiarowych.
-# nie wiem nawet jak powinno byc.
-
-
 import copy
 import numpy as np
 
 from scipy.stats import nbinom
 from scipy.special import digamma
-
 
 # dl / dr = sum_t digamma(x_t + r) * post - sum_t digamma(r) * post + sum_t ln(1-p) * post
 
