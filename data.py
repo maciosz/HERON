@@ -43,7 +43,7 @@ class Data(object):
         for which_line, line in enumerate(self.matrix):
             for position, value in enumerate(line):
                 if value > threshold:
-                    logging.debug("podmieniam %f na %f", (value, medians[which_line]))
+                    logging.debug("podmieniam %f na %f", value, medians[which_line])
                     self.matrix[which_line][position] = medians[which_line]
                     counter += 1
         logging.info("I've reduced values in %i windows to median value.", counter)
@@ -70,7 +70,17 @@ class Data(object):
         previous_chromosome = 0
         window = -1
         for value in self.matrix[which_line]:
-            chromosome, window = self._goto_next_window(previous_chromosome, window)
+            try:
+                chromosome, window = self._goto_next_window(previous_chromosome, window)
+            except IndexError:
+                logging.error("Index error w goto_next_window")
+                logging.error("Zapisuje %d linie", which_line)
+                logging.error("Jestem na chromosomie %d, w oknie %d", previous_chromosome, window)
+                logging.error("Atrybuty chromosomowe:")
+                logging.error(str(self.numbers_of_windows))
+                logging.error(str(self.chromosome_names))
+                logging.error(str(self.chromosome_ends))
+                break
             if chromosome != previous_chromosome:
                 end = self.chromosome_ends[previous_chromosome]
             elif value != previous_value and previous_value is not None:
@@ -161,7 +171,7 @@ class Data(object):
         # zaleznie od wersji pysama
         # to nizej jest juz deprecated w najnowszej ale wciaz dziala
         self.chromosome_ends = list(bam.lengths)
-        self.numbers_of_windows = [int(math.ceil(length / resolution))
+        self.numbers_of_windows = [int(math.ceil(float(length) / resolution))
                                    for length in self.chromosome_ends]
 
     def add_data_from_bam(self, filename, mean=True):
@@ -183,9 +193,11 @@ class Data(object):
                 continue
                 # no reads mapped to this chromosom
                 # should I remove these chromosomes
-                # or add zeros?
+                # or (like now) add zeros?
+                # Adding zeros it's easier, I don't have to check anything
+                # between the samples.
             first_window = first_read / resolution
-            for window in xrange(self.numbers_of_windows[chr_id] + 1):
+            for window in xrange(self.numbers_of_windows[chr_id]):
                 counter += 1
                 if window < first_window:
                     windows.append(0)
@@ -194,12 +206,16 @@ class Data(object):
                     logging.debug("%d windows processed", counter)
                 start = window * resolution
                 end = start + resolution
-                pileup = bam.pileup(reference=chromosome,
-                                    start=start, end=end)
+                #pileup = bam.pileup(reference=chromosome,
+                #                    start=start, end=end)
                 value = sum(position.n for position in pileup if start <= position.pos < end)
                 # pileup bierze ready zazebiajace sie z tym regionem
                 # ale w szczegolnosci tez wychodzace z niego
                 # also jesli jest pusty to to bedzie zero, wiec ok
+                # ...a skoro i tak musze tak filtrowac to niepotrzebne jest robienie nowych pileupow
+                # to bardzo mocno wydluza
+                # a wziecie jednego na wszystkie chromosomy to przesada w druga strone,
+                # tez wydluza
                 if mean:
                     value = float(value) / resolution
                 windows.append(value)

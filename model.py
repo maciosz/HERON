@@ -207,4 +207,5 @@ class Model(object):
                 if j == 0:
                     j = "0.0"
                 output_file.write(str(j))
-                output_file.write("\n")
+                output_file.write("\t")
+            output_file.write("\n")
