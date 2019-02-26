@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 import copy
-import numpy as np
+import mynumpy as np
 
 from scipy.stats import nbinom
 from scipy.special import digamma

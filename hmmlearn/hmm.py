@@ -10,7 +10,8 @@
 The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 import logging
-import numpy as np
+#import numpy as np
+import mynumpy as np
 from scipy.stats import nbinom, norm
 from sklearn import cluster
 from sklearn.mixture import (
@@ -809,6 +810,7 @@ class NegativeBinomialHMM(_BaseHMM):
         n_observations, n_dim = X.shape
         r, p = self.r, self.p
         log_likelihood = np.ndarray((n_observations, self.n_components))
+        print("dtype log likelihood:", log_likelihood.dtype)
         for i in xrange(n_observations):
             for j in xrange(self.n_components):
                 log_likelihood[i, j] = np.sum(nbinom.logpmf(X[i,:], r[j,:], p[j,:]))

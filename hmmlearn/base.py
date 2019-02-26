@@ -5,7 +5,8 @@ import sys
 import logging
 from collections import deque
 
-import numpy as np
+#import numpy as np
+import mynumpy as np
 from scipy.misc import logsumexp
 from sklearn.base import BaseEstimator, _pprint
 from sklearn.utils import check_array, check_random_state
@@ -424,7 +425,24 @@ class _BaseHMM(BaseEstimator):
         self : object
             Returns self.
         """
-        X = check_array(X)
+        try:
+            X = check_array(X)
+        except ValueError:
+            logging.error("Achtung! Value Error!")
+            logging.error("X: typ, typ [0], typ [0][0], len, len elementow")
+            logging.error(type(X))
+            logging.error(type(X[0]))
+            try:
+                logging.error(type(X[0][0]))
+            except:
+                logging.error("nie ma elementu [0][0]")
+            logging.error(len(X))
+            for i in X:
+                try:
+                    logging.error(len(i))
+                except:
+                    logging.error("nie ma dlugosci")
+            sys.exit()
         self._init(X, lengths=lengths)
         self._check()
 
@@ -434,6 +452,7 @@ class _BaseHMM(BaseEstimator):
             curr_logprob = 0
             for i, j in iter_from_X_lengths(X, lengths):
                 framelogprob = self._compute_log_likelihood(X[i:j])
+                framelogprob = np.asarray(framelogprob, dtype=np.float128)
                 logprob, fwdlattice = self._do_forward_pass(framelogprob)
                 curr_logprob += logprob
                 if (not curr_logprob < 10) and (not curr_logprob > 10):
@@ -463,6 +482,11 @@ class _BaseHMM(BaseEstimator):
     def _do_forward_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         fwdlattice = np.zeros((n_samples, n_components))
+        #types = [i.dtype for i in (np.log(self.startprob_),
+        #                           np.log(self.transmat_),
+        #                           framelogprob,
+        #                           fwdlattice)]
+        #print(types)
         _hmmc._forward(n_samples, n_components,
                        np.log(self.startprob_),
                        np.log(self.transmat_),
