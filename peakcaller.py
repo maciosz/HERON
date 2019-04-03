@@ -36,10 +36,15 @@ def parse_arguments():
                         action='store', type=str, default='NB',
                         help='distribution of emissions; "Gauss" or "NB" (default)')
     parser.add_argument('-t', dest='threshold',
-                        action='store', type=int, default=0,
-                        help='windows above this value will be considered outliers'
-                        ' and reduced to the median value;'
-                        ' 0 (default) means no threshold')
+                        action='store', type=float, default=1.0,
+                        help='t promils of windows with highest value' 
+                        ' will not be used to train the model.'
+                        ' 0 means no threshold.')
+    #parser.add_argument('-t', dest='threshold',
+    #                    action='store', type=int, default=0,
+    #                    help='windows above this value will be considered outliers'
+    #                    ' and reduced to the median value;'
+    #                    ' 0 (default) means no threshold')
     parser.add_argument('-l', dest='logging',
                         action='store', type=str, default='i',
                         help=
@@ -97,14 +102,26 @@ def main():
         model.initialise_transition_matrix(arguments.n_peaks)
     logging.info("Reading in data...")
     model.read_in_files(arguments.infiles, resolution=arguments.resolution)
-    if arguments.threshold != 0:
-        logging.info("Filtering data (removing outliers)")
-        model.filter_data(arguments.threshold)
+    #if arguments.threshold != 0:
+    #    logging.info("Filtering data (removing outliers)")
+    #    model.filter_data(arguments.threshold)
     logging.debug("Window size: %i", model.data.window_size)
     logging.debug("Chromosome names: %s", str(model.data.chromosome_names))
     logging.debug("Chromosome ends: %s", str(model.data.chromosome_ends))
-    model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
-    logging.info("Data ready to analyse. Finding peaks")
+    #model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
+    #logging.info("Data ready to analyse. Finding peaks")
+    logging.info("All files read in.")
+    if arguments.threshold != 0:
+        logging.info("Preparing data for fitting.")
+        model.data_for_training = model.data.copy()
+        logging.info("Filtering data...")
+        model.filter_training_data(arguments.threshold)
+    # to prepair jest ni z gruszki ni z wiatraka
+    # trzeba by pomyslec nad innym flowem tego wszystkiego
+    model.prepair_data()
+    logging.info("Fitting model...")
+    model.fit_HMM()
+    logging.info("Predicting states...")
     model.predict_states()
     model.save_states_to_seperate_files(arguments.output_prefix)
     model.write_stats_to_file(arguments.output_prefix)

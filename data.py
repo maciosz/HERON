@@ -4,6 +4,7 @@ import sys
 import math
 import logging
 import numpy
+import collections
 import pysam
 
 class Data(object):
@@ -35,6 +36,7 @@ class Data(object):
         """
         medians = []
         for line in self.matrix:
+            # co? czemu 1000? nie powinno byc threshold??
             median = numpy.median(filter(lambda x: x <= 1000, line))
             medians.append(median)
         #means = map(numpy.mean, filter(lambda x: x <= 1000, self.matrix))
@@ -47,6 +49,93 @@ class Data(object):
                     self.matrix[which_line][position] = medians[which_line]
                     counter += 1
         logging.info("I've reduced values in %i windows to median value.", counter)
+
+    def split_data(self, threshold):
+        """
+        Remove windows with value above given threshold
+        (in any sample!),
+        splitting chromosome into parts.
+        Update chromosome_ends, chromosome_names and numbers_of_windows.
+        """
+        current_chromosome = 0
+        to_skip = []
+        for line in self.matrix:
+            for position, value in enumerate(line):
+                if position in to_skip:
+                    continue
+                if value > threshold:
+                    logging.debug("splitting!")
+                    to_skip.append(position)
+        numpy.delete(self.matrix, to_skip, axis=1)
+        new_numbers_of_windows = []
+        new_names = []
+        new_ends = []
+        chromosomes_to_split = collections.defaultdict(list)
+        for position in to_skip:
+            chromosome = self._find_chromosome(self, position)
+            chromosomes_to_split[chromosome].append(position)
+        previous_end = 0
+        for chromosome in xrange(len(chromosome_names)):
+            if chromosome > 0:
+                previous_end = self.chromosome_ends[chromosome - 1]
+            end = self.chromosome_ends[chromosome]
+            name = self.chromosome_names[chromosome]
+            number_of_windows = self.numbers_of_windows[chromosome]
+            if chromosome not in chromosomes_to_split.keys():
+                new_ends.append(end)
+                new_names.append(name)
+                news_number_of_windows.append(number_of_windows)
+            else:
+                names, ends, numbers_of_windows = split_chromosome(chromosome, chromosomes_to_split[chromosome],
+                                                                   name, previous_end)
+                new_names.extend(names)
+                new_ends.extend(ends)
+                new_numbers_of_windows.extend(numbers_of_windows)
+
+        self.numbers_of_windows = new_numbers_of_windows
+        self.chromosome_names = new_names
+        self.chromosome_ends = new_ends
+
+    def split_chromosome(self, positions_of_split, name, previous_end = 0):
+        names = []
+        ends = []
+        numbers_of_windows = []
+        for nr, position in enumerate(positions_of_split):
+            # tu mozna (trzeba) by sprawdzac czy ta pozycja
+            # nie jest w bezposrednim sasiedztwie poprzedniej
+            names.append(name + "_" + str(nr))
+            # to jest zle, bo ends jest w jednostkach 1bp,
+            # a position w window_size
+            ends.append(position - previous_end)
+            previous_end = position + self.window_size
+            numbers_of_windows.append()
+        return names, ends, numbers_of_windows
+
+    def _find_chromosome(self, position):
+        chromosome_ends = np.cumsum(self.numbers_of_windows) * self.window_size
+        for number, (start, end) in enumerate(zip(chromosome_ends[:-1], chromosome_ends[1:])):
+            if start <= position < end:
+                return number
+
+    def find_threshold_value(self, threshold, factor = 0.001):
+        """
+        Say we want to remove threshold * factor (threshold promils by default)
+        windows with the highest values.
+        It's easier to remove windows with value above some x.
+        So this method finds the x for the desired threshold.
+
+        """
+        sorted_values = np.sort(self.matrix.flatten())
+        threshold_index = int(len(sorted_values) * threshold * factor)
+        threshold_value = sorted_values[threshold_index]
+        return threshold_value
+        #It might be better to return a list of values,
+        #one for each sample:
+        sorted_matrix = np.sort(self.matrix)
+        threshold_index = int(sorted_matrix.shape[1] * threshold * factor)
+        threshold_values = sorted_matrix[:, threshold_index]
+        return threshold_values
+        # ! wcale nie jestem pewna czy dobrze pamietam wymiary self.matrix
 
     def windows_to_intervals(self, which_line=0):
         """
@@ -61,7 +150,7 @@ class Data(object):
         which_line: integer;
             which line of the matrix should be converted
             (which sample / patient / matrix row);
-            indexing 0-relative
+            indexing 0-based
         """
         self.matrix = self.matrix.transpose()
         output = []
@@ -71,6 +160,7 @@ class Data(object):
         window = -1
         for value in self.matrix[which_line]:
             try:
+                # chyba moge wywalic tego try'a?
                 chromosome, window = self._goto_next_window(previous_chromosome, window)
             except IndexError:
                 logging.error("Index error w goto_next_window")

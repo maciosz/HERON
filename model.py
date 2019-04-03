@@ -13,6 +13,7 @@ class Model(object):
 
     def __init__(self, number_of_states, distribution):
         self.data = Data()
+        self.data_for_training = Data()
         self.window_size = 0
         self.number_of_states = number_of_states
         self.distribution = distribution
@@ -84,13 +85,19 @@ class Model(object):
         """
         self.data.filter_data(threshold)
 
+    def filter_data_for_training(self, threshold):
+        self.data_for_training.find_threshold_value(threshold)
+        self.data_for_training.split_data(threshold)
+
     def fit_HMM(self):
         """
         Fit the HMM using Baum-Welch algorithm.
         That is - estimate the parameters of HMM
         basing on the data, using EM approach.
         """
-        self.model.fit(self.data.matrix, lengths=self.data.numbers_of_windows)
+        self.prepair_data()
+        self.model.fit(self.data_for_training.matrix,
+                       lengths=self.data_for_training.numbers_of_windows)
 
     def predict_states(self):
         """
@@ -99,15 +106,14 @@ class Model(object):
         and fit the model.
         Add predicted states to the data matrix.
         """
-        logging.info("predicting states, stay tuned")
-        logging.info("prepairing data")
-        self.prepair_data()
-        logging.info("fitting model")
+        #logging.info("predicting states, stay tuned")
+        #logging.info("prepairing data")
+        #logging.info("fitting model")
         #logging.debug(self.model)
         #if hasattr(self.model, "transmat_"):
         #    logging.debug(self.model.transmat_)
-        self.fit_HMM()
-        logging.info("predicting states")
+        #self.fit_HMM()
+        #logging.info("predicting states")
         self.probability, states = self.model.decode(self.data.matrix,
                                                      lengths=self.data.numbers_of_windows)
         logging.info("Is convergent: %s", str(self.model.monitor_.converged))
@@ -123,10 +129,14 @@ class Model(object):
         """
         Changes data matrix to numpy array and transposes it.
         For NB distribution converts floats to ints.
+
+        TODO: jakos to inaczej zrobic, no co to za kopiowanie kodu.
         """
         if self.distribution == "NB":
             self.data.convert_floats_to_ints()
+            self.data_for_training.convert_floats_to_ints()
         self.data.matrix = numpy.array(self.data.matrix).transpose()
+        self.data_for_training.matrix = numpy.array(self.data.matrix).transpose()
         logging.debug("Wymiary macierzy: %s", str(self.data.matrix.shape))
 
     def save_states_to_seperate_files(self, output_prefix):
@@ -180,6 +190,7 @@ class Model(object):
                 output_file.write("%s_of_state%i:\n" % (name, i))
                 output_file.write(str(stats))
                 output_file.write("\n")
+                # is this ever happening?
     # Actually, diag covars would be more readable if
     # only diagonal would be printed, without all the zeros.
 
