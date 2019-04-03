@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import sys
+import copy
 import logging
 import argparse
 from model import Model
@@ -113,7 +114,7 @@ def main():
     logging.info("All files read in.")
     if arguments.threshold != 0:
         logging.info("Preparing data for fitting.")
-        model.data_for_training = model.data.copy()
+        model.data_for_training = copy.deepcopy(model.data)
         logging.info("Filtering data...")
         model.filter_training_data(arguments.threshold)
     # to prepair jest ni z gruszki ni z wiatraka

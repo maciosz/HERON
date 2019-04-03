@@ -85,7 +85,7 @@ class Model(object):
         """
         self.data.filter_data(threshold)
 
-    def filter_data_for_training(self, threshold):
+    def filter_training_data(self, threshold):
         self.data_for_training.find_threshold_value(threshold)
         self.data_for_training.split_data(threshold)
 
@@ -117,6 +117,7 @@ class Model(object):
         self.probability, states = self.model.decode(self.data.matrix,
                                                      lengths=self.data.numbers_of_windows)
         logging.info("Is convergent: %s", str(self.model.monitor_.converged))
+        # TODO: metoda add_column dla Data
         self.data.matrix = numpy.c_[self.data.matrix, states]
         logging.info("Number of iterations till convergence: %i", self.model.monitor_.iter)
         if self.distribution == "NB":
@@ -135,8 +136,8 @@ class Model(object):
         if self.distribution == "NB":
             self.data.convert_floats_to_ints()
             self.data_for_training.convert_floats_to_ints()
-        self.data.matrix = numpy.array(self.data.matrix).transpose()
-        self.data_for_training.matrix = numpy.array(self.data.matrix).transpose()
+        #self.data.matrix = numpy.array(self.data.matrix).transpose()
+        #self.data_for_training.matrix = numpy.array(self.data.matrix).transpose()
         logging.debug("Wymiary macierzy: %s", str(self.data.matrix.shape))
 
     def save_states_to_seperate_files(self, output_prefix):

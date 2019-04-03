@@ -20,7 +20,7 @@ class Data(object):
         Create an empty Data object
         with resolution 1.
         """
-        self.matrix = []
+        self.matrix = numpy.array()
         self.window_size = 1
         self.numbers_of_windows = []
         self.chromosome_names = []
@@ -34,6 +34,7 @@ class Data(object):
         Actually threshold could be given for every patient,
         not as a single value. But for now it's just one float.
         """
+        # TODO: adjust to new transposed version of self.matrix
         medians = []
         for line in self.matrix:
             # co? czemu 1000? nie powinno byc threshold??
@@ -57,6 +58,7 @@ class Data(object):
         splitting chromosome into parts.
         Update chromosome_ends, chromosome_names and numbers_of_windows.
         """
+        # TODO: adjust to new transposed version of self.matrix
         current_chromosome = 0
         to_skip = []
         for line in self.matrix:
@@ -112,7 +114,7 @@ class Data(object):
         return names, ends, numbers_of_windows
 
     def _find_chromosome(self, position):
-        chromosome_ends = np.cumsum(self.numbers_of_windows) * self.window_size
+        chromosome_ends = numpy.cumsum(self.numbers_of_windows) * self.window_size
         for number, (start, end) in enumerate(zip(chromosome_ends[:-1], chromosome_ends[1:])):
             if start <= position < end:
                 return number
@@ -125,17 +127,16 @@ class Data(object):
         So this method finds the x for the desired threshold.
 
         """
-        sorted_values = np.sort(self.matrix.flatten())
+        sorted_values = numpy.sort(self.matrix.flatten())
         threshold_index = int(len(sorted_values) * threshold * factor)
         threshold_value = sorted_values[threshold_index]
         return threshold_value
         #It might be better to return a list of values,
         #one for each sample:
-        sorted_matrix = np.sort(self.matrix)
-        threshold_index = int(sorted_matrix.shape[1] * threshold * factor)
-        threshold_values = sorted_matrix[:, threshold_index]
+        sorted_matrix = numpy.sort(self.matrix, axis=0)
+        threshold_index = int(sorted_matrix.shape[0] * threshold * factor)
+        threshold_values = sorted_matrix[threshold_index, :]
         return threshold_values
-        # ! wcale nie jestem pewna czy dobrze pamietam wymiary self.matrix
 
     def windows_to_intervals(self, which_line=0):
         """
@@ -152,7 +153,7 @@ class Data(object):
             (which sample / patient / matrix row);
             indexing 0-based
         """
-        self.matrix = self.matrix.transpose()
+        #self.matrix = self.matrix.transpose()
         output = []
         previous_value = None
         start, end = 0, None
@@ -183,7 +184,7 @@ class Data(object):
                 end = None
             previous_value, previous_chromosome = value, chromosome
         output.append((self.chromosome_names[-1], start, self.chromosome_ends[-1], value))
-        self.matrix = self.matrix.transpose()
+        #self.matrix = self.matrix.transpose()
         return output
 
     def _goto_next_window(self, chromosome, window):
@@ -220,7 +221,15 @@ class Data(object):
         Add coverage data from single bedgraph file.
         """
         logging.info("reading in file %s", filename)
-        self.matrix.append([float(line.strip().split()[-1]) for line in open(filename)])
+        #self.matrix.append([float(line.strip().split()[-1]) for line in open(filename)])
+        # aa czy tu nie moglabym zamiast float dac jakies self.type?
+        # i zmieniac go w zaleznosci od distr
+        new_line = [[float(line.strip().split()[-1])] for line in open(filename)]
+        if self.matrix.shape == (0,):
+            self.matrix = numpy.array(new_line)
+        else:
+            self.matrix = numpy.append(self.matrix, new_line, axis=1)
+            
 
     def prepare_metadata_from_bedgraph(self, filename):
         """
@@ -269,6 +278,7 @@ class Data(object):
         Add coverage data from bam file.
         Assumes some metadata is already added.
         """
+        #TODO: zmienic na zapisywanie "transponowane", w bedgraphach juz jest
         logging.info("reading in file %s", filename)
         resolution = self.window_size
         bam = pysam.AlignmentFile(filename)
@@ -353,18 +363,24 @@ class Data(object):
         self.prepare_metadata_from_file(filenames[0], resolution)
         for filename in filenames:
             self.add_data_from_file(filename, mean)
-        logging.debug("Wymiary macierzy: %d", len(self.matrix))
-        logging.debug("Liczba kolumn:  %d", len(self.matrix[0]))
+        #logging.debug("Wymiary macierzy: %d", len(self.matrix))
+        #logging.debug("Liczba kolumn:  %d", len(self.matrix[0]))
+        logging.debug("Matrix dimensions: %s", str(self.matrix.shape))
 
     def convert_floats_to_ints(self):
         #if any(int(self.matrix) != self.matrix):
-        for line in self.matrix:
-            for value in line:
-                if value != int(value):
-                    logging.warning("Warning: your values contain floats,"
-                                    " I'm converting them to integers.")
-                    # this appears for every file
-                    # kind of annoying, would be better if it did only once
-                    # *or* for each file but togheter with it's name
-                    break
-        self.matrix = [[int(i) for i in line] for line in self.matrix]
+        #for line in self.matrix:
+        #    for value in line:
+        #        if value != int(value):
+        #            logging.warning("Warning: your values contain floats,"
+        #                            " I'm converting them to integers.")
+        #            # this appears for every file
+        #            # kind of annoying, would be better if it did only once
+        #            # *or* for each file but togheter with it's name
+        #            break
+        #self.matrix = [[int(i) for i in line] for line in self.matrix]
+        if numpy.any(self.matrix != self.matrix.astype(int)):
+            logging.warning("Warning: your values contain floats,"
+                            " I'm converting them to integers.")
+        self.matrix = self.matrix.astype(int)
+
