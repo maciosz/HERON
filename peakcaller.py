@@ -112,9 +112,9 @@ def main():
     #model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
     #logging.info("Data ready to analyse. Finding peaks")
     logging.info("All files read in.")
+    model.data_for_training = copy.deepcopy(model.data)
     if arguments.threshold != 0:
         logging.info("Preparing data for fitting.")
-        model.data_for_training = copy.deepcopy(model.data)
         logging.info("Filtering data...")
         model.filter_training_data(arguments.threshold)
     # to prepair jest ni z gruszki ni z wiatraka

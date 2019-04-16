@@ -20,7 +20,7 @@ class Data(object):
         Create an empty Data object
         with resolution 1.
         """
-        self.matrix = numpy.array()
+        self.matrix = numpy.array([])
         self.window_size = 1
         self.numbers_of_windows = []
         self.chromosome_names = []
@@ -74,7 +74,7 @@ class Data(object):
         new_ends = []
         chromosomes_to_split = collections.defaultdict(list)
         for position in to_skip:
-            chromosome = self._find_chromosome(self, position)
+            chromosome = self._find_chromosome(position)
             chromosomes_to_split[chromosome].append(position)
         previous_end = 0
         for chromosome in xrange(len(chromosome_names)):

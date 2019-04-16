@@ -18,9 +18,13 @@ possibly with
 -o - prefix to output files
 -l - level of logging
 -d - distribution of emissions (Gauss / NB; defaults to NB)
--t - threshold for outliers; windows higher than that will be considered outliers
-     and replaced with median value from the whole genome (excluding outliers);
-     0 (default) means no threshold
+-t - threshold; t promils windows with highest values
+     will be excluded from training.
+     They will be included in finding states step.
+     #threshold for outliers;
+     #windows higher than that will be considered outliers
+     #and replaced with median value from the whole genome (excluding outliers);
+     #0 (default) means no threshold
 -r - resolution, that is the desired window size.
      Used only for reading bams, has no effect on bedgraphs.
      By default it's 200.
@@ -64,3 +68,4 @@ Assumes that bedgraphs
  Can read bams, but do it much longer than bedgraphs.
 
 Tested on python 2.7. Won't work with python3.
+(Actually, it might. Worth checking.)
