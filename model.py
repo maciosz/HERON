@@ -86,8 +86,8 @@ class Model(object):
         self.data.filter_data(threshold)
 
     def filter_training_data(self, threshold):
-        self.data_for_training.find_threshold_value(threshold)
-        self.data_for_training.split_data(threshold)
+        threshold_values = self.data_for_training.find_threshold_value(threshold)
+        self.data_for_training.split_data(threshold_values)
 
     def fit_HMM(self):
         """
@@ -95,6 +95,7 @@ class Model(object):
         That is - estimate the parameters of HMM
         basing on the data, using EM approach.
         """
+        logging.debug("Data for training shape: %s", str(self.data_for_training.matrix.shape))
         self.prepair_data()
         self.model.fit(self.data_for_training.matrix,
                        lengths=self.data_for_training.numbers_of_windows)

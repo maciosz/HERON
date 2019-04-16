@@ -55,20 +55,23 @@ class Data(object):
         """
         Remove windows with value above given threshold
         (in any sample!),
+        # for now, but it shouldn't
         splitting chromosome into parts.
         Update chromosome_ends, chromosome_names and numbers_of_windows.
         """
         # TODO: adjust to new transposed version of self.matrix
+        # TODO: ...and to the fact that threshold is a vector of thresholds
         current_chromosome = 0
         to_skip = []
-        for line in self.matrix:
-            for position, value in enumerate(line):
-                if position in to_skip:
-                    continue
-                if value > threshold:
-                    logging.debug("splitting!")
-                    to_skip.append(position)
-        numpy.delete(self.matrix, to_skip, axis=1)
+        for row_position, line in enumerate(self.matrix):
+            for column_position, value in enumerate(line):
+                if row_position in to_skip:
+                    #continue
+                    break
+                if value >= threshold[column_position]:
+                    logging.debug("splitting at %d!", row_position)
+                    to_skip.append(row_position)
+        self.matrix = numpy.delete(self.matrix, to_skip, axis=0)
         new_numbers_of_windows = []
         new_names = []
         new_ends = []
@@ -76,46 +79,72 @@ class Data(object):
         for position in to_skip:
             chromosome = self._find_chromosome(position)
             chromosomes_to_split[chromosome].append(position)
-        previous_end = 0
-        for chromosome in xrange(len(chromosome_names)):
+        logging.debug(chromosomes_to_split)
+        previous_end = -1
+        for chromosome in xrange(len(self.chromosome_names)):
             if chromosome > 0:
-                previous_end = self.chromosome_ends[chromosome - 1]
+                #previous_end = self.chromosome_ends[chromosome - 1]
+                previous_end = self.numbers_of_windows[chromosome-1] #?
             end = self.chromosome_ends[chromosome]
             name = self.chromosome_names[chromosome]
             number_of_windows = self.numbers_of_windows[chromosome]
             if chromosome not in chromosomes_to_split.keys():
                 new_ends.append(end)
                 new_names.append(name)
-                news_number_of_windows.append(number_of_windows)
+                new_numbers_of_windows.append(number_of_windows)
             else:
-                names, ends, numbers_of_windows = split_chromosome(chromosome, chromosomes_to_split[chromosome],
-                                                                   name, previous_end)
+                names, ends, numbers_of_windows = self.split_chromosome(chromosomes_to_split[chromosome],
+                                                                        chromosome)
                 new_names.extend(names)
                 new_ends.extend(ends)
                 new_numbers_of_windows.extend(numbers_of_windows)
+
+        logging.debug("numbers of windows, chromosome names, chromosome ends:")
+        logging.debug("old:")
+        logging.debug(self.numbers_of_windows)
+        logging.debug(self.chromosome_names)
+        logging.debug(self.chromosome_ends)
 
         self.numbers_of_windows = new_numbers_of_windows
         self.chromosome_names = new_names
         self.chromosome_ends = new_ends
 
-    def split_chromosome(self, positions_of_split, name, previous_end = 0):
+        logging.debug("new:")
+        logging.debug(self.numbers_of_windows)
+        logging.debug(self.chromosome_names)
+        logging.debug(self.chromosome_ends)
+
+
+    def split_chromosome(self, positions_of_split, chromosome):
+        start = -1
+        chromosome_ends = numpy.cumsum(self.numbers_of_windows)
+        if chromosome > 0:
+            start = chromosome_ends[chromosome - 1]
+        name = self.chromosome_names[chromosome]
+        previous_end = start
         names = []
         ends = []
         numbers_of_windows = []
+        positions_of_split.append(chromosome_ends[chromosome])
         for nr, position in enumerate(positions_of_split):
-            # tu mozna (trzeba) by sprawdzac czy ta pozycja
-            # nie jest w bezposrednim sasiedztwie poprzedniej
-            names.append(name + "_" + str(nr))
-            # to jest zle, bo ends jest w jednostkach 1bp,
-            # a position w window_size
-            ends.append(position - previous_end)
-            previous_end = position + self.window_size
-            numbers_of_windows.append()
+            number_of_windows = position - previous_end - 1
+            if number_of_windows != 0:
+                names.append(name+ "_" + str(nr))
+                numbers_of_windows.append(number_of_windows)
+                # to nie uwzglednia koncow chromosomow, one maja inny end
+                # ale tez jesli to sie dzieje tylko dla fitowania to nie jest to tak naprawde potrzebne
+                ends.append(number_of_windows * self.window_size)
+            previous_end = position
         return names, ends, numbers_of_windows
 
     def _find_chromosome(self, position):
-        chromosome_ends = numpy.cumsum(self.numbers_of_windows) * self.window_size
+        logging.debug("Looking for %d", position)
+        chromosome_ends = numpy.cumsum(self.numbers_of_windows)# * self.window_size
+        chromosome_ends = numpy.append([0], chromosome_ends)
+        logging.debug("Chromosome ends:")
+        logging.debug(chromosome_ends)
         for number, (start, end) in enumerate(zip(chromosome_ends[:-1], chromosome_ends[1:])):
+            logging.debug("number %i, start %i end %i", number, start, end)
             if start <= position < end:
                 return number
 
@@ -125,18 +154,21 @@ class Data(object):
         windows with the highest values.
         It's easier to remove windows with value above some x.
         So this method finds the x for the desired threshold.
-
         """
-        sorted_values = numpy.sort(self.matrix.flatten())
-        threshold_index = int(len(sorted_values) * threshold * factor)
-        threshold_value = sorted_values[threshold_index]
-        return threshold_value
+        #sorted_values = numpy.sort(self.matrix.flatten())
+        #threshold_index = int(len(sorted_values) * threshold * factor)
+        #threshold_value = sorted_values[threshold_index]
+        #return threshold_value
         #It might be better to return a list of values,
         #one for each sample:
-        sorted_matrix = numpy.sort(self.matrix, axis=0)
+        sorted_matrix = - numpy.sort(- self.matrix, axis=0)
         threshold_index = int(sorted_matrix.shape[0] * threshold * factor)
         threshold_values = sorted_matrix[threshold_index, :]
+        logging.debug("Na poziomie %f thresholdy wynosza:", threshold * factor)
+        logging.debug(threshold_values)
         return threshold_values
+        # jezeli bedzie duzo okien o takich wartosciach to usune znacznie wiecej niz threshold.
+        # ale nie wiem czy to nam przeszkadza.
 
     def windows_to_intervals(self, which_line=0):
         """
@@ -159,7 +191,7 @@ class Data(object):
         start, end = 0, None
         previous_chromosome = 0
         window = -1
-        for value in self.matrix[which_line]:
+        for value in self.matrix[:, which_line]:
             try:
                 # chyba moge wywalic tego try'a?
                 chromosome, window = self._goto_next_window(previous_chromosome, window)
@@ -177,13 +209,13 @@ class Data(object):
             elif value != previous_value and previous_value is not None:
                 end = window * self.window_size
             if end is not None:
-                output.append((self.chromosome_names[previous_chromosome],
-                               start, end, previous_value))
+                output.append([self.chromosome_names[previous_chromosome],
+                               start, end, previous_value])
                 start = window * self.window_size #+ 1
                 # beds are 0-based, half-open, so I think this should work fine.
                 end = None
             previous_value, previous_chromosome = value, chromosome
-        output.append((self.chromosome_names[-1], start, self.chromosome_ends[-1], value))
+        output.append([self.chromosome_names[-1], start, self.chromosome_ends[-1], value])
         #self.matrix = self.matrix.transpose()
         return output
 
@@ -206,6 +238,8 @@ class Data(object):
             if self._check_condition(condition, interval):
                 if save_value is False:
                     interval = interval[:-1]
+                else:
+                    interval[-1] = int(interval[-1])
                 output.write('\t'.join(map(str, interval)))
                 output.write('\n')
         output.close()
