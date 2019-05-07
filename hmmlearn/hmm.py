@@ -807,13 +807,17 @@ class NegativeBinomialHMM(_BaseHMM):
         """
 
     def _compute_log_likelihood(self, X):
+        def _logpmf(x, r, p):
+            #return nbinom.logpmf(x.astype('float64'), r.astype('float64'), p).astype('float128')
+            return nbinom.logpmf(x.astype('float64'), r.astype('float64'), p.astype('float64')).astype('float128')
         n_observations, n_dim = X.shape
         r, p = self.r, self.p
-        log_likelihood = np.ndarray((n_observations, self.n_components))
-        print("dtype log likelihood:", log_likelihood.dtype)
+        log_likelihood = np.ndarray((n_observations, self.n_components), dtype="float128")
+        #print("dtype log likelihood:", log_likelihood.dtype)
         for i in xrange(n_observations):
             for j in xrange(self.n_components):
-                log_likelihood[i, j] = np.sum(nbinom.logpmf(X[i,:], r[j,:], p[j,:]))
+                #log_likelihood[i, j] = np.sum(nbinom.logpmf(X[i,:], r[j,:], p[j,:]))
+                log_likelihood[i, j] = np.sum(_logpmf(X[i,:], r[j,:], p[j,:]))
         return log_likelihood
 
 
@@ -864,11 +868,6 @@ class NegativeBinomialHMM(_BaseHMM):
     def _do_mstep(self, stats):
         super(NegativeBinomialHMM, self)._do_mstep(stats)
 
-        p = stats['obs'] / (self.r * stats['post'][:, np.newaxis] + stats['obs'])
-        logging.debug("new p: %s", str(self.p))
-
-        # p = ( sum_t (P_t * o_t) ) / ( r * sum_t P_t + sum_t (P_t * o_t)  )
-
         denom = stats['post'][:, np.newaxis]
         means = stats['obs'] / denom
         covars_prior = self.covars_prior
@@ -885,10 +884,19 @@ class NegativeBinomialHMM(_BaseHMM):
             print r_initial
             r_initial = self.r
 
+        p = stats['obs'] / (self.r * stats['post'][:, np.newaxis] + stats['obs'])
+        # p = ( sum_t (P_t * o_t) ) / ( r * sum_t P_t + sum_t (P_t * o_t)  )
+
+        self.p = 1 - p
+        logging.debug("new p: %s", str(self.p))
+         
         r = finding_r.find_r(r_initial, stats['x'],
                              stats['posteriors'], self.p)
+        #r = finding_r.find_r(r_initial, stats['x'],
+        #                     stats['posteriors'], p)
+
         self.r = r      
         logging.debug("new r: %s", str(self.r))
-            
+ 
         self.means_ = self.p * self.r / (1 - self.p)
         self.covars_ = self.p * self.r / (1 - self.p) ** 2

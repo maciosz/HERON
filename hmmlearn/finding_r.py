@@ -9,6 +9,8 @@ from scipy.special import digamma
 # dl / dr = sum_t digamma(x_t + r) * post - sum_t digamma(r) * post + sum_t ln(1-p) * post
 
 def calculate_derivative(pstwa, dane, r, p):
+    def _digamma(array):
+        return digamma(array.astype("float64")).astype("float128")
     n_comp, n_var = r.shape
     n_obs, n_var = dane.shape
     r_conc = np.concatenate([r] * n_obs, axis=0)
@@ -19,9 +21,9 @@ def calculate_derivative(pstwa, dane, r, p):
     suma = suma.reshape(n_obs, n_comp, n_var)
     pstwa_repeat = np.repeat(pstwa, n_var)
     pstwa_repeat = pstwa_repeat.reshape(n_obs, n_comp, n_var)
-    a = np.sum(pstwa_repeat * digamma(suma), axis=0)
+    a = np.sum(pstwa_repeat * _digamma(suma), axis=0)
     a = a.reshape(n_comp, n_var)
-    b = np.sum(pstwa_repeat * digamma(r_conc), axis=0)
+    b = np.sum(pstwa_repeat * _digamma(r_conc), axis=0)
     b = b.reshape(n_comp, n_var)
     p_conc = np.concatenate([p] * n_obs, axis=0)
     p_conc = p_conc.reshape(n_obs, n_comp, n_var)
@@ -67,7 +69,7 @@ def update_r(r, derivative, delta):
 def find_r(r_initial, dane, pstwa, p, threshold = 5e-2):
     r = r_initial.copy()
     r_not_found = True
-    p = 1.0 - p
+    #p = 1.0 - p
     #counter = 0
     delta = np.zeros(shape=r.shape)
     while r_not_found:
