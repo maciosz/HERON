@@ -8,36 +8,43 @@ The program attempts to identify sites of enrichment
  and returns bed file with coordinates of peaks,
  i.e. sites of presumed enrichment.
 
-Installation:
+###Installation:
 
 No need to install. Just make sure this version of hmmlearn
  is in the same directory as peakcaller.
  Also you need numpy, scipy, pysam.
 
-Current usage:
+###Current usage:
 
 ./peakcaller.py -i sample1.bedgraph sample2.bedgraph ...
 
 possibly with
 
 -s - number of states (default 3)
+
 -o - prefix to output files
+
 -l - level of logging
+
 -d - distribution of emissions (Gauss / NB; defaults to NB)
+
 -t - threshold; t promils windows with highest values
      will be excluded from training.
      They will be included in finding states step.
      Defaults to 1. 0 mean no thresholding.
+
 -r - resolution, that is the desired window size.
      Used only for reading bams, has no effect on bedgraphs.
      By default it's 200.
 --dont-save - do not save one of the states as peaks
+
 --n-peaks - how many peaks we expect (as fraction of the whole genome);
             it's used to generate initial transition matrix;
             by default there are no assumptions on that matter;
             so far I don't see if it influences anything.
 
-Current output:
+###Current output:
+
  generates
  file '[prefix]\_all\_states.bed' with all states,
  marked in the 3rd column and
