@@ -8,6 +8,12 @@ The program attempts to identify sites of enrichment
  and returns bed file with coordinates of peaks,
  i.e. sites of presumed enrichment.
 
+Installation:
+
+No need to install. Just make sure this version of hmmlearn
+ is in the same directory as peakcaller.
+ Also you need numpy, scipy, pysam.
+
 Current usage:
 
 ./peakcaller.py -i sample1.bedgraph sample2.bedgraph ...
@@ -21,10 +27,7 @@ possibly with
 -t - threshold; t promils windows with highest values
      will be excluded from training.
      They will be included in finding states step.
-     #threshold for outliers;
-     #windows higher than that will be considered outliers
-     #and replaced with median value from the whole genome (excluding outliers);
-     #0 (default) means no threshold
+     Defaults to 1. 0 mean no thresholding.
 -r - resolution, that is the desired window size.
      Used only for reading bams, has no effect on bedgraphs.
      By default it's 200.
@@ -36,13 +39,13 @@ possibly with
 
 Current output:
  generates
- file '[prefix]_all_states.bed' with all states,
+ file '[prefix]\_all\_states.bed' with all states,
  marked in the 3rd column and
- files [prefix]_state_[x].bed.
+ files [prefix]\_state\_[x].bed.
  Also, generates [prefix].log with log messages
- and [prefix]_stats.txt with some statistics.
+ and [prefix]\_stats.txt with some statistics.
  Checks which state has the highest mean coverage over samples,
- assumes it denotes peaks and copies file [prefix]_state_x.bed to [prefix]_peaks.bed.
+ assumes it denotes peaks and copies file [prefix]\_state\_x.bed to [prefix]\_peaks.bed.
  Unless you add --dont-save argument, then it doesn't.
  ...actually, it doesn't do that at the moment,
  so --dont-save has no effect.
