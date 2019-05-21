@@ -96,6 +96,7 @@ class Model(object):
         basing on the data, using EM approach.
         """
         logging.debug("Data for training shape: %s", str(self.data_for_training.matrix.shape))
+        # to sie dzieje i tu i w peakcallerze, zdecyduj sie
         self.prepair_data()
         self.model.fit(self.data_for_training.matrix,
                        lengths=self.data_for_training.numbers_of_windows)
@@ -145,7 +146,7 @@ class Model(object):
         """
         Changes states to intervals and saves them to seperate files.
         Also writes one bed file with all the states.
-        Assumes the states are in the last row of the data matrix.
+        Assumes the states are in the last column of the data matrix.
         """
         intervals = self.data.windows_to_intervals(-1)
         output = output_prefix + "_all_states.bed"
@@ -169,6 +170,9 @@ class Model(object):
         self.write_transmat_to_file(output)
         self.write_means_to_file(output)
         self.write_covars_to_file(output)
+        if self.distribution == "NB":
+            self.write_p_to_file(output)
+            self.write_r_to_file(output)
         output.write("Mean length: TODO\n")
         output.close()
 
@@ -204,6 +208,14 @@ class Model(object):
         self._write_some_stat_to_file(output_file,
                                       "covars")
 
+    def write_p_to_file(self, output_file):
+        self._write_some_stat_to_file(output_file,
+                                      "p")
+
+    def write_r_to_file(self, output_file):
+        self._write_some_stat_to_file(output_file,
+                                      "r")
+
     def write_transmat_to_file(self, output_file):
         output_file.write("Transition matrix:\n")
         for line in self.model.transmat_:
@@ -218,7 +230,7 @@ class Model(object):
         for i in self.data.matrix:
             for j in i:
                 if j == 0:
-                    j = "0.0"
+                    j = "0.0" #? why?
                 output_file.write(str(j))
                 output_file.write("\t")
             output_file.write("\n")

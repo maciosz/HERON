@@ -38,7 +38,7 @@ def parse_arguments():
                         help='distribution of emissions; "Gauss" or "NB" (default)')
     parser.add_argument('-t', dest='threshold',
                         action='store', type=float, default=1.0,
-                        help='t promils of windows with highest value' 
+                        help='t promils of windows with highest value'
                         ' will not be used to train the model.'
                         ' 0 means no threshold.')
     #parser.add_argument('-t', dest='threshold',

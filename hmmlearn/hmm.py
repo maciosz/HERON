@@ -756,8 +756,8 @@ class NegativeBinomialHMM(_BaseHMM):
                           random_state=random_state, n_iter=n_iter,
                           tol=tol, params=params, verbose=verbose,
                           init_params=init_params)
-        self.p = p
-        self.r = r
+        self.p_ = p
+        self.r_ = r
         self.means_ = m  # means?
         self.covars_ = s  # sdev?
         self.min_covar = min_covar
@@ -778,8 +778,19 @@ class NegativeBinomialHMM(_BaseHMM):
                                     random_state=self.random_state)
             kmeans.fit(X)
             means = kmeans.cluster_centers_
+            #levels = np.linspace(0, 1, self.n_components + 2)
+            #quantiles = np.quantile(X, levels, axis=0)
+            #means = quantiles[1:-1, :]
             means = np.sort(means, axis = 0)
+            #for mean1, mean2 in zip(means[:-1,:], means[1:,:]):
+            #    # zapewniam zeby srednie byly rozne
+            #    # tj. scisle rosnace, nie tylko niemalejace
+            #    roznica = mean2 - mean1
+            #    if np.all(roznica <= 0):
+            #        mean2 += 1 - roznica[0]
             self.means_ = means
+            logging.debug("Initial means:")
+            logging.debug(self.means_)
             cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
             if not cv.shape:
                 cv.shape = (1, 1)
@@ -789,9 +800,10 @@ class NegativeBinomialHMM(_BaseHMM):
                 cv += means.max()
             self.covars_ = cv
         if 'p' in self.init_params or not hasattr(self, "p"):
-            self.p = 1 - ((cv-means) / cv)
+            self.p_ = 1 - ((cv-means) / cv)
+            #self.p_ = ((cv-means) / cv)
         if 'r' in self.init_params or not hasattr(self, "r"):
-            self.r = means**2 / (cv - means)
+            self.r_ = means**2 / (cv - means)
 
     def _check(self):
         super(NegativeBinomialHMM, self)._check()
@@ -811,7 +823,7 @@ class NegativeBinomialHMM(_BaseHMM):
             #return nbinom.logpmf(x.astype('float64'), r.astype('float64'), p).astype('float128')
             return nbinom.logpmf(x.astype('float64'), r.astype('float64'), p.astype('float64')).astype('float128')
         n_observations, n_dim = X.shape
-        r, p = self.r, self.p
+        r, p = self.r_, self.p_
         log_likelihood = np.ndarray((n_observations, self.n_components), dtype="float128")
         #print("dtype log likelihood:", log_likelihood.dtype)
         for i in xrange(n_observations):
@@ -823,9 +835,9 @@ class NegativeBinomialHMM(_BaseHMM):
 
 
     def _generate_sample_from_state(self, state, random_state=None):
-        p = self.p
-        r = self.r
-        return [nbinom(self.r[state][feature], self.p[state][feature]).rvs()
+        p = self.p_
+        r = self.r_
+        return [nbinom(self.r_[state][feature], self.p_[state][feature]).rvs()
                 for feature in xrange(self.n_features)]
 
     def _initialize_sufficient_statistics(self):
@@ -868,6 +880,8 @@ class NegativeBinomialHMM(_BaseHMM):
     def _do_mstep(self, stats):
         super(NegativeBinomialHMM, self)._do_mstep(stats)
 
+        # Cov and means estimation are only to calculate initial value of r
+        # for r estimation
         denom = stats['post'][:, np.newaxis]
         means = stats['obs'] / denom
         covars_prior = self.covars_prior
@@ -882,21 +896,24 @@ class NegativeBinomialHMM(_BaseHMM):
         if np.any(np.isnan(r_initial)):
             print "r_initial jest nan, paczaj:"
             print r_initial
-            r_initial = self.r
+            r_initial = self.r_
 
-        p = stats['obs'] / (self.r * stats['post'][:, np.newaxis] + stats['obs'])
+        p = stats['obs'] / (self.r_ * stats['post'][:, np.newaxis] + stats['obs'])
         # p = ( sum_t (P_t * o_t) ) / ( r * sum_t P_t + sum_t (P_t * o_t)  )
 
-        self.p = 1 - p
-        logging.debug("new p: %s", str(self.p))
+        self.p_ = 1 - p
+        #self.p_ = p
+        logging.debug("new p: %s", str(self.p_))
          
         r = finding_r.find_r(r_initial, stats['x'],
-                             stats['posteriors'], self.p)
+                             stats['posteriors'], self.p_)
         #r = finding_r.find_r(r_initial, stats['x'],
         #                     stats['posteriors'], p)
 
-        self.r = r      
-        logging.debug("new r: %s", str(self.r))
+        self.r_ = r      
+        logging.debug("new r: %s", str(self.r_))
  
-        self.means_ = self.p * self.r / (1 - self.p)
-        self.covars_ = self.p * self.r / (1 - self.p) ** 2
+        self.means_ = self.p_ * self.r_ / (1 - self.p_)
+        self.covars_ = self.p_ * self.r_ / (1 - self.p_) ** 2
+        # czy tu powinno byc odwrotnie 1 - p?
+        # to akurat do liczenia sie nigdzie nie przydaje, ale do raportowania owszem
