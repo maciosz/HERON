@@ -2,6 +2,7 @@
 
 import logging
 import warnings
+import random
 import numpy
 from hmmlearn import hmm
 from data import Data
@@ -11,7 +12,11 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 class Model(object):
 
-    def __init__(self, number_of_states, distribution):
+    def __init__(self, number_of_states, distribution, random_seed):
+        if not random_seed:
+            self.random_seed = random.randint(0, 2**32 - 1)
+        else:
+            self.random_seed = random_seed
         self.data = Data()
         self.data_for_training = Data()
         self.window_size = 0
@@ -22,10 +27,12 @@ class Model(object):
         self.probability = None
 
     def create_HMM(self):
+        random_state = numpy.random.RandomState(self.random_seed)
         if self.distribution == "Gauss":
             return hmm.GaussianHMM(self.number_of_states,
                                    covariance_type='diag',
                                    n_iter=1000, tol=0.000005,
+                                   random_state = random_state,
                                    #means_weight = 0.00001,
                                    #init_params = 'cts',
                                    verbose=True)
@@ -33,6 +40,7 @@ class Model(object):
             return hmm.NegativeBinomialHMM(self.number_of_states,
                                            n_iter=1000,
                                            tol=0.000005,
+                                           random_state = random_state,
                                            verbose=True)
 
     def initialise_means(self, means):

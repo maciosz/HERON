@@ -78,6 +78,10 @@ def parse_arguments():
                         ' or p * k means'
                         ' (first all the means for the first sample,'
                         ' then for the second etc.).')
+    parser.add_argument('--random-seed', '--rs', default=None, type=int,
+                        help=
+                        'random seed for initialising means.'
+                        'Can be used to reproduce exact results.')
     return parser.parse_args()
 
 
@@ -106,7 +110,9 @@ def main():
     logging.info("Command used: %s", " ".join(sys.argv))
     logging.info("Creating data structure...")
     model = Model(number_of_states=arguments.number_of_states,
-                  distribution=arguments.distribution)
+                  distribution=arguments.distribution,
+                  random_seed=arguments.random_seed)
+    logging.debug("Random seed: %d", model.random_seed)
     if arguments.n_peaks != 0:
         logging.info("Initialising transition matrix...")
         model.initialise_transition_matrix(arguments.n_peaks)
@@ -138,7 +144,6 @@ def main():
     model.predict_states()
     model.save_states_to_seperate_files(arguments.output_prefix)
     model.write_stats_to_file(arguments.output_prefix)
-    #logging.debug("Random state: %s", str(model.model.random_state))
     #if arguments.save_peaks:
     #    pass
     logging.info("...done.")
