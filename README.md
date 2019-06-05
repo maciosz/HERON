@@ -36,6 +36,9 @@ possibly with
 -r - resolution, that is the desired window size.
      Used only for reading bams, has no effect on bedgraphs.
      By default it's 200.
+
+-m - means to initialise HMM with
+
 --dont-save - do not save one of the states as peaks
 
 --n-peaks - how many peaks we expect (as fraction of the whole genome);

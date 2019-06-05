@@ -35,6 +35,16 @@ class Model(object):
                                            tol=0.000005,
                                            verbose=True)
 
+    def initialise_means(self, means):
+        self.model.init_params = self.model.init_params.replace("m", "")
+        #means = np.array([[0.], [1.], [2.]])
+        # if len(means) == (self.number_of_states):
+        means = numpy.array(means).astype('float128')
+        means = means.reshape((self.number_of_states, 1))
+        # TODO: zaimplementowac dla wielowymiarowego przypadku
+        self.model.means_ = means
+        
+
     def initialise_transition_matrix(self, n_peaks):
         """
         To trzeba recznie zmieniac zeby dostosowac do aktualnych potrzeb.
@@ -174,6 +184,7 @@ class Model(object):
             self.write_p_to_file(output)
             self.write_r_to_file(output)
         output.write("Mean length: TODO\n")
+        output.write("Number of regions: TODO\n")
         output.close()
 
     def write_probability_to_file(self, output_file):

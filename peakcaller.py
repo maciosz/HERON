@@ -37,7 +37,7 @@ def parse_arguments():
                         action='store', type=str, default='NB',
                         help='distribution of emissions; "Gauss" or "NB" (default)')
     parser.add_argument('-t', dest='threshold',
-                        action='store', type=float, default=1.0,
+                        action='store', type=float, default=0,
                         help='t promils of windows with highest value'
                         ' will not be used to train the model.'
                         ' 0 means no threshold.')
@@ -69,6 +69,15 @@ def parse_arguments():
                         ' as the fraction of the whole genome? (E.g. 0.01)'
                         ' It will be used to initialise a transition matrix.'
                         ' By default model doesn\'t assume anything on that matter.')
+    parser.add_argument('-m', '--means', nargs='+', default=None, type=float,
+                        help=
+                        'Initial means. By default I will estimate them.'
+                        ' When you have p samples and k states'
+                        ' you should provide either k means'
+                        ' (then I would use these means for all samples)'
+                        ' or p * k means'
+                        ' (first all the means for the first sample,'
+                        ' then for the second etc.).')
     return parser.parse_args()
 
 
@@ -101,6 +110,9 @@ def main():
     if arguments.n_peaks != 0:
         logging.info("Initialising transition matrix...")
         model.initialise_transition_matrix(arguments.n_peaks)
+    if arguments.means:
+        logging.info("Initialising means...")
+        model.initialise_means(arguments.means)
     logging.info("Reading in data...")
     model.read_in_files(arguments.infiles, resolution=arguments.resolution)
     #if arguments.threshold != 0:
@@ -126,6 +138,7 @@ def main():
     model.predict_states()
     model.save_states_to_seperate_files(arguments.output_prefix)
     model.write_stats_to_file(arguments.output_prefix)
+    #logging.debug("Random state: %s", str(model.model.random_state))
     #if arguments.save_peaks:
     #    pass
     logging.info("...done.")
