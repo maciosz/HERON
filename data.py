@@ -3,8 +3,8 @@
 import sys
 import math
 import logging
-import numpy
 import collections
+import numpy
 import pysam
 
 class Data(object):
@@ -114,7 +114,6 @@ class Data(object):
         logging.debug(self.chromosome_names)
         logging.debug(self.chromosome_ends)
 
-
     def split_chromosome(self, positions_of_split, chromosome):
         start = -1
         chromosome_ends = numpy.cumsum(self.numbers_of_windows)
@@ -132,7 +131,8 @@ class Data(object):
                 names.append(name+ "_" + str(nr))
                 numbers_of_windows.append(number_of_windows)
                 # to nie uwzglednia koncow chromosomow, one maja inny end
-                # ale tez jesli to sie dzieje tylko dla fitowania to nie jest to tak naprawde potrzebne
+                # ale tez jesli to sie dzieje tylko dla fitowania
+                # to nie jest to tak naprawde potrzebne
                 ends.append(number_of_windows * self.window_size)
             previous_end = position
         return names, ends, numbers_of_windows
@@ -148,7 +148,7 @@ class Data(object):
             if start <= position < end:
                 return number
 
-    def find_threshold_value(self, threshold, factor = 0.001):
+    def find_threshold_value(self, threshold, factor=0.001):
         """
         Say we want to remove threshold * factor (threshold promils by default)
         windows with the highest values.
@@ -182,7 +182,7 @@ class Data(object):
 
         which_line: integer;
             which line of the matrix should be converted
-            (which sample / patient / matrix row);
+            (which sample / patient / matrix column);
             indexing 0-based
         """
         #self.matrix = self.matrix.transpose()
@@ -235,7 +235,7 @@ class Data(object):
         """
         output = open(output, 'w')
         for interval in intervals:
-            if self._check_condition(condition, interval):
+            if _check_condition(condition, interval):
                 if save_value is False:
                     interval = interval[:-1]
                 else:
@@ -243,12 +243,6 @@ class Data(object):
                 output.write('\t'.join(map(str, interval)))
                 output.write('\n')
         output.close()
-
-    def _check_condition(self, condition, interval):
-        if condition is None:
-            return True
-        value = interval[-1]
-        return value == condition
 
     def add_data_from_bedgraph(self, filename):
         """
@@ -263,7 +257,6 @@ class Data(object):
             self.matrix = numpy.array(new_line)
         else:
             self.matrix = numpy.append(self.matrix, new_line, axis=1)
-            
 
     def prepare_metadata_from_bedgraph(self, filename):
         """
@@ -418,3 +411,8 @@ class Data(object):
                             " I'm converting them to integers.")
         self.matrix = self.matrix.astype(int)
 
+def _check_condition(condition, interval):
+    if condition is None:
+        return True
+    value = interval[-1]
+    return value == condition
