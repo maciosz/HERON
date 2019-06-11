@@ -43,13 +43,22 @@ class Model(object):
                                            random_state = random_state,
                                            verbose=True)
 
-    def initialise_means(self, means):
+    def initialise_means(self, means, n_samples):
         self.model.init_params = self.model.init_params.replace("m", "")
         #means = np.array([[0.], [1.], [2.]])
-        # if len(means) == (self.number_of_states):
+        if len(means) == self.number_of_states:
+            means = numpy.repeat(means, n_samples)
+        elif len(means) != self.number_of_states * n_samples:
+            raise ValueError("Inproper length of initialised means;"
+                             " should be either n_states or n_states * n_samples,"
+                             " in this casa either %d or %d * %d."
+                             " Got %d" % (self.number_of_states,
+                                          self.number_of_states,
+                                          n_samples,
+                                          len(means)))
         means = numpy.array(means).astype('float128')
-        means = means.reshape((self.number_of_states, 1))
-        # TODO: zaimplementowac dla wielowymiarowego przypadku
+        means = means.reshape((self.number_of_states, n_samples))
+        # TODO: jakies sprawdzanie czy to n_samples sie zgadza
         self.model.means_ = means
         
 

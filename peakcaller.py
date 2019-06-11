@@ -76,7 +76,7 @@ def parse_arguments():
                         ' you should provide either k means'
                         ' (then I would use these means for all samples)'
                         ' or p * k means'
-                        ' (first all the means for the first sample,'
+                        ' (first all the means for the first state,'
                         ' then for the second etc.).')
     parser.add_argument('--random-seed', '--rs', default=None, type=int,
                         help=
@@ -109,6 +109,8 @@ def main():
     sys.stderr = stream_to_logger
     logging.info("Command used: %s", " ".join(sys.argv))
     logging.info("Creating data structure...")
+    number_of_samples = len(arguments.infiles)
+    logging.debug("Number of files: %d", number_of_samples)
     model = Model(number_of_states=arguments.number_of_states,
                   distribution=arguments.distribution,
                   random_seed=arguments.random_seed)
@@ -118,7 +120,7 @@ def main():
         model.initialise_transition_matrix(arguments.n_peaks)
     if arguments.means:
         logging.info("Initialising means...")
-        model.initialise_means(arguments.means)
+        model.initialise_means(arguments.means, number_of_samples)
     logging.info("Reading in data...")
     model.read_in_files(arguments.infiles, resolution=arguments.resolution)
     #if arguments.threshold != 0:
