@@ -62,13 +62,6 @@ def parse_arguments():
                         'Should the state with highest mean be saved as peaks?'
                         ' By default it will.'
                         ' If you specify this, it won\'t.')
-    parser.add_argument('--n-peaks', dest='n_peaks',
-                        action='store', type=float, default=0,
-                        help=
-                        'How many peaks do you expect,'
-                        ' as the fraction of the whole genome? (E.g. 0.01)'
-                        ' It will be used to initialise a transition matrix.'
-                        ' By default model doesn\'t assume anything on that matter.')
     parser.add_argument('-m', '--means', nargs='+', default=None, type=float,
                         help=
                         'Initial means. By default I will estimate them.'
@@ -82,6 +75,17 @@ def parse_arguments():
                         help=
                         'random seed for initialising means.'
                         'Can be used to reproduce exact results.')
+    parser.add_argument('-g', '--groups', nargs='+', type=int, default=None,
+                        help=
+                        'Are your samples divided into groups?'
+                        ' If so, specify here the order of samples using 0s and 1s.'
+                        ' For example, -g 0 1 1 0 0 means that 1., 4. and 5. sample'
+                        ' are from one group and 2. and 3. are from another.'
+                        ' Currently only 2 groups are allowed.')
+    parser.add_argument('-q', '--quantiles', nargs='+', type=float, default=[0.5, 0.99],
+                        help=
+                        'What quantiles should I use as background and enrichment?'
+                        ' Currently it only applies to a grouped peakcalling.')
     return parser.parse_args()
 
 
@@ -109,18 +113,10 @@ def main():
     sys.stderr = stream_to_logger
     logging.info("Command used: %s", " ".join(sys.argv))
     logging.info("Creating data structure...")
-    number_of_samples = len(arguments.infiles)
-    logging.debug("Number of files: %d", number_of_samples)
     model = Model(number_of_states=arguments.number_of_states,
                   distribution=arguments.distribution,
                   random_seed=arguments.random_seed)
     logging.debug("Random seed: %d", model.random_seed)
-    if arguments.n_peaks != 0:
-        logging.info("Initialising transition matrix...")
-        model.initialise_transition_matrix(arguments.n_peaks)
-    if arguments.means:
-        logging.info("Initialising means...")
-        model.initialise_means(arguments.means, number_of_samples)
     logging.info("Reading in data...")
     model.read_in_files(arguments.infiles, resolution=arguments.resolution)
     #if arguments.threshold != 0:
@@ -132,6 +128,12 @@ def main():
     #model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
     #logging.info("Data ready to analyse. Finding peaks")
     logging.info("All files read in.")
+    if arguments.groups:
+        logging.debug("I will initialise grouped means")
+        model.initialise_grouped_means(arguments.groups, arguments.quantiles)
+    if arguments.means:
+        logging.info("Initialising means...")
+        model.initialise_means(arguments.means)
     model.data_for_training = copy.deepcopy(model.data)
     if arguments.threshold != 0:
         logging.info("Preparing data for fitting.")

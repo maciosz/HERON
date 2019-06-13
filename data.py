@@ -411,6 +411,21 @@ class Data(object):
                             " I'm converting them to integers.")
         self.matrix = self.matrix.astype(int)
 
+    def calculate_quantiles(self, levels):
+        """
+        Calculate desired quantiles for every sample,
+        excluding zero values.
+        """
+        #quantiles = numpy.quantile(self.matrix, levels, axis=0)
+        n_samples = self.matrix.shape[1]
+        quantiles = numpy.zeros((len(levels), n_samples))
+        for sample in xrange(n_samples):
+            values = self.matrix[:, sample]
+            values = values[values != 0]
+            sample_quantiles = numpy.quantile(values, levels)
+            quantiles[:, sample] = sample_quantiles
+        return quantiles
+
 def _check_condition(condition, interval):
     if condition is None:
         return True

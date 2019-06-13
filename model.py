@@ -25,6 +25,7 @@ class Model(object):
         self.model = self.create_HMM()
         #self.model.means_ = numpy.array([[0], [4], [20]])
         self.probability = None
+        self.number_of_samples = 0
 
     def create_HMM(self):
         random_state = numpy.random.RandomState(self.random_seed)
@@ -43,24 +44,46 @@ class Model(object):
                                            random_state = random_state,
                                            verbose=True)
 
-    def initialise_means(self, means, n_samples):
+    def initialise_means(self, means):
         self.model.init_params = self.model.init_params.replace("m", "")
         #means = np.array([[0.], [1.], [2.]])
         if len(means) == self.number_of_states:
-            means = numpy.repeat(means, n_samples)
-        elif len(means) != self.number_of_states * n_samples:
+            means = numpy.repeat(means, self.number_of_samples)
+        elif len(means) != self.number_of_states * self.number_of_samples:
             raise ValueError("Inproper length of initialised means;"
                              " should be either n_states or n_states * n_samples,"
                              " in this casa either %d or %d * %d."
                              " Got %d" % (self.number_of_states,
                                           self.number_of_states,
-                                          n_samples,
+                                          self.number_of_samples,
                                           len(means)))
         means = numpy.array(means).astype('float128')
         means = means.reshape((self.number_of_states, n_samples))
-        # TODO: jakies sprawdzanie czy to n_samples sie zgadza
         self.model.means_ = means
-        
+
+    def initialise_grouped_means(self, order, levels):
+        """
+        Currently assumes 5 states, 2 groups.
+        Order should be a list of zeros and ones
+         representing a group for each sample.
+        """
+        n_samples = len(order)
+        self.model.init_params = self.model.init_params.replace("m", "")
+        means = numpy.ones((self.number_of_states, n_samples))
+        template = numpy.array([[0, 0], [1, 1], [1, 2], [2, 1], [2, 2]])
+        quantiles = self.data.calculate_quantiles(levels)
+        for state in xrange(self.number_of_states):
+            for sample in xrange(n_samples):
+                group = order[sample]
+                mean_class = template[state, group]
+                if mean_class == 0:
+                    mean = 0
+                elif mean_class == 1:
+                    mean = quantiles[0, sample]
+                elif mean_class == 2:
+                    mean = quantiles[1, sample]
+                means[state, sample] = mean
+        self.model.means_ = means
 
     def initialise_transition_matrix(self, n_peaks):
         """
@@ -104,6 +127,8 @@ class Model(object):
             mean = False
         elif self.distribution == "Gauss":
             mean = True
+        self.number_of_samples = len(files)
+        logging.debug("Number of files: %d", self.number_of_samples)
         self.data.add_data_from_files(files, resolution, mean)
 
     def filter_data(self, threshold):
