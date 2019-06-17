@@ -8,13 +8,13 @@ The program attempts to identify sites of enrichment
  and returns bed file with coordinates of peaks,
  i.e. sites of presumed enrichment.
 
-###Installation:
+### Installation:
 
 No need to install. Just make sure this version of hmmlearn
  is in the same directory as peakcaller.
  Also you need numpy, scipy, pysam.
 
-###Current usage:
+### Current usage:
 
 ./peakcaller.py -i sample1.bedgraph sample2.bedgraph ...
 
@@ -37,16 +37,20 @@ possibly with
      Used only for reading bams, has no effect on bedgraphs.
      By default it's 200.
 
--m - means to initialise HMM with
-
 --dont-save - do not save one of the states as peaks
 
---n-peaks - how many peaks we expect (as fraction of the whole genome);
-            it's used to generate initial transition matrix;
-            by default there are no assumptions on that matter;
-            so far I don't see if it influences anything.
+Initialising means options:
 
-###Current output:
+-m - list of constants
+
+-q - quantiles
+
+-g - your samples are divided into two groups;
+     provide order of these groups here
+     using 0s and 1s.
+
+
+### Current output:
 
  generates
  file '[prefix]\_all\_states.bed' with all states,

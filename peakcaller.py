@@ -85,7 +85,8 @@ def parse_arguments():
     parser.add_argument('-q', '--quantiles', nargs='+', type=float, default=[0.5, 0.99],
                         help=
                         'What quantiles should I use as background and enrichment?'
-                        ' Currently it only applies to a grouped peakcalling.')
+                        ' Or as any other states, if you want more than 3.'
+                        ' I will always start from value zero anyway.')
     return parser.parse_args()
 
 
