@@ -67,14 +67,14 @@ def parse_arguments():
                         'Initial means. By default I will estimate them.'
                         ' When you have p samples and k states'
                         ' you should provide either k means'
-                        ' (then I would use these means for all samples)'
+                        ' (then I will use these means for all samples)'
                         ' or p * k means'
                         ' (first all the means for the first state,'
                         ' then for the second etc.).')
     parser.add_argument('--random-seed', '--rs', default=None, type=int,
                         help=
                         'random seed for initialising means.'
-                        'Can be used to reproduce exact results.')
+                        ' Can be used to reproduce exact results.')
     parser.add_argument('-g', '--groups', nargs='+', type=int, default=None,
                         help=
                         'Are your samples divided into groups?'
@@ -131,9 +131,11 @@ def main():
     if arguments.groups:
         logging.debug("I will initialise grouped means")
         model.initialise_grouped_means(arguments.groups, arguments.quantiles)
-    if arguments.means:
+    elif arguments.means:
         logging.info("Initialising means...")
-        model.initialise_means(arguments.means)
+        model.initialise_constant_means(arguments.means)
+    else:
+        model.initialise_individual_means(arguments.quantiles)
     model.data_for_training = copy.deepcopy(model.data)
     if arguments.threshold != 0:
         logging.info("Preparing data for fitting.")

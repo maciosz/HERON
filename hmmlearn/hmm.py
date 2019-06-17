@@ -193,8 +193,27 @@ class GaussianHMM(_BaseHMM):
             #self.means_ = kmeans.cluster_centers_
             means = kmeans.cluster_centers_
             means = np.sort(means, axis = 0)
+
+            levels = np.linspace(0, 1, self.n_components + 2)
+            quantiles = np.quantile(X, levels, axis=0)
+            #means = quantiles[1:-1, :]
+            # a moze dolozyc pierwsze zero? chociaz zwykle pewnie i tak jest
+            # jesli nie jest to pewnie nie ma sensu go dokladac...
+            #means = np.sort(means, axis = 0)
+            #for mean1, mean2 in zip(means[:-1,:], means[1:,:]):
+            #    # zapewniam zeby srednie byly rozne
+            #    # tj. scisle rosnace, nie tylko niemalejace
+            #    roznica = mean2 - mean1
+            #    if np.all(roznica <= 0):
+            #        mean2 += 0.01 - roznica[0]
+            #        # nie wiem czemu akurat 0.01, powinnam to pewnie jakos szacowac
+            #        #  na podstawie std, minimalnej roznicy miedzy wartosciami czy cos w tym stylu
+            # aktualnie robie to w modelu, nie tutaj. Uzywajac np.quantile
+
             self.means_ = means
- 
+            logging.debug("Initial means:")
+            logging.debug(self.means_)
+
         if 'c' in self.init_params or not hasattr(self, "covars_"):
             cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
             if not cv.shape:
@@ -781,6 +800,7 @@ class NegativeBinomialHMM(_BaseHMM):
             #levels = np.linspace(0, 1, self.n_components + 2)
             #quantiles = np.quantile(X, levels, axis=0)
             #means = quantiles[1:-1, :]
+            # a moze dolozyc pierwsze zero?
             means = np.sort(means, axis = 0)
             #for mean1, mean2 in zip(means[:-1,:], means[1:,:]):
             #    # zapewniam zeby srednie byly rozne
@@ -788,6 +808,7 @@ class NegativeBinomialHMM(_BaseHMM):
             #    roznica = mean2 - mean1
             #    if np.all(roznica <= 0):
             #        mean2 += 1 - roznica[0]
+            #        # moge tu po prostu dodac 1 bo w NB mam same integery
             self.means_ = means
             logging.debug("Initial means:")
             logging.debug(self.means_)

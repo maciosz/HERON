@@ -44,8 +44,10 @@ class Model(object):
                                            random_state = random_state,
                                            verbose=True)
 
-    def initialise_means(self, means):
-        self.model.init_params = self.model.init_params.replace("m", "")
+    def initialise_constant_means(self, means):
+        """
+        means - list of means to initialise HMM with.
+        """
         #means = np.array([[0.], [1.], [2.]])
         if len(means) == self.number_of_states:
             means = numpy.repeat(means, self.number_of_samples)
@@ -57,9 +59,44 @@ class Model(object):
                                           self.number_of_states,
                                           self.number_of_samples,
                                           len(means)))
+        means = numpy.array(means).reshape((self.number_of_states, self.number_of_samples))
+        self._set_means(means)
+
+    def _set_means(self, means):
+        if means.shape != (self.number_of_states, self.number_of_samples):
+            raise ValueError("Inproper shape of initialised means;"
+                             " should be n_states * n_samples,"
+                             " in this casa %d * %d."
+                             " Got %s" % (self.number_of_states,
+                                          self.number_of_samples,
+                                          str(means.shape)))
         means = numpy.array(means).astype('float128')
-        means = means.reshape((self.number_of_states, n_samples))
+        self.model.init_params = self.model.init_params.replace("m", "")
         self.model.means_ = means
+        
+
+    def initialise_individual_means(self, levels):
+        if len(levels) != (self.number_of_states - 1):
+            raise ValueError("Number of states and quantile values are incompatible;"
+                             " #states should be equal to #quantiles + 1,"
+                             " but I got %d states and %d quantiles." %
+                             (self.number_of_states, len(levels)))
+        n_samples = self.number_of_samples
+        #self.model.init_params = self.model.init_params.replace("m", "")
+        means = numpy.ones((self.number_of_states, n_samples))
+        template = numpy.array(range(len(levels) + 1))
+        quantiles = self.data.calculate_quantiles(levels)
+        for state in xrange(self.number_of_states):
+            for sample in xrange(n_samples):
+                mean_class = template[state]
+                if mean_class == 0:
+                    mean = 0
+                else:
+                    mean = quantiles[mean_class - 1, sample]
+                means[state, sample] = mean
+        #print means
+        self._set_means(means)
+        #self.model.means_ = means
 
     def initialise_grouped_means(self, order, levels):
         """
@@ -68,7 +105,7 @@ class Model(object):
          representing a group for each sample.
         """
         n_samples = len(order)
-        self.model.init_params = self.model.init_params.replace("m", "")
+        #self.model.init_params = self.model.init_params.replace("m", "")
         means = numpy.ones((self.number_of_states, n_samples))
         template = numpy.array([[0, 0], [1, 1], [1, 2], [2, 1], [2, 2]])
         quantiles = self.data.calculate_quantiles(levels)
@@ -83,7 +120,8 @@ class Model(object):
                 elif mean_class == 2:
                     mean = quantiles[1, sample]
                 means[state, sample] = mean
-        self.model.means_ = means
+        self._set_means(means)
+        #self.model.means_ = means
 
     def initialise_transition_matrix(self, n_peaks):
         """
