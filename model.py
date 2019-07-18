@@ -3,6 +3,7 @@
 import logging
 import warnings
 import random
+import itertools
 import numpy
 from hmmlearn import hmm
 from data import Data
@@ -12,28 +13,34 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 class Model(object):
 
-    def __init__(self, number_of_states, distribution, random_seed):
+    def __init__(self, number_of_states, distribution, random_seed=None):
+        """
+        number_of_states - int; how many states the HMM should have
+        distribution - str; either "NB" for negative binomial or "Gauss"
+        random_seed - int, optional
+                      random_seed to be used in random operations;
+                      useful for reproducing results
+        """
         if not random_seed:
             self.random_seed = random.randint(0, 2**32 - 1)
         else:
             self.random_seed = random_seed
         self.data = Data()
         self.data_for_training = Data()
-        self.window_size = 0
         self.number_of_states = number_of_states
         self.distribution = distribution
-        self.model = self.create_HMM()
+        self.model = self._create_HMM()
         #self.model.means_ = numpy.array([[0], [4], [20]])
         self.probability = None
         self.number_of_samples = 0
 
-    def create_HMM(self):
+    def _create_HMM(self):
         random_state = numpy.random.RandomState(self.random_seed)
         if self.distribution == "Gauss":
             return hmm.GaussianHMM(self.number_of_states,
                                    covariance_type='diag',
                                    n_iter=1000, tol=0.000005,
-                                   random_state = random_state,
+                                   random_state=random_state,
                                    #means_weight = 0.00001,
                                    #init_params = 'cts',
                                    verbose=True)
@@ -41,7 +48,7 @@ class Model(object):
             return hmm.NegativeBinomialHMM(self.number_of_states,
                                            n_iter=1000,
                                            tol=0.000005,
-                                           random_state = random_state,
+                                           random_state=random_state,
                                            verbose=True)
 
     def initialise_constant_means(self, means):
@@ -73,26 +80,57 @@ class Model(object):
         means = numpy.array(means).astype('float128')
         self.model.init_params = self.model.init_params.replace("m", "")
         self.model.means_ = means
-        
+
+    def _set_covars(self, covars):
+        if covars.shape != (self.number_of_states, self.number_of_samples):
+             raise ValueError("Inproper shape of initialised covars;"
+                              " should be n_states * n_samples,"
+                              " in this case %d * %d."
+                              " Got %s" % (self.number_of_states,
+                                           self.number_of_samples,
+                                           str(means.shape)))
+        covars = numpy.array(covars).astype('float128')
+        self.model.init_params = self.model.init_params.replace("c", "")
+        self.model.covars_ = covars
 
     def initialise_individual_means(self, levels):
-        if len(levels) != (self.number_of_states - 1):
+        """
+        Initialise means for samples based on quanitles of values.
+
+        levels - list of floats in [0, 1] range
+
+        There should be as many levels in the list as states in the HMM.
+        Each level corresponds to one state.
+        You can't specify different levels for different samples,
+        but the final value of initial mean will of course depend on the values in the sample.
+        """
+        #if len(levels) != (self.number_of_states - 1):
+        #    raise ValueError("Number of states and quantile values are incompatible;"
+        #                     " #states should be equal to #quantiles + 1,"
+        #                     " but I got %d states and %d quantiles." %
+        #                     (self.number_of_states, len(levels)))
+
+        if len(levels) != (self.number_of_states):
             raise ValueError("Number of states and quantile values are incompatible;"
-                             " #states should be equal to #quantiles + 1,"
+                             " #states should be equal to #quantiles,"
                              " but I got %d states and %d quantiles." %
                              (self.number_of_states, len(levels)))
+        if any(numpy.array(levels) > 1) or any(numpy.array(levels) < 0):
+            raise ValueError("Quantile levels should be between 0 and 1 (inclusive).")
         n_samples = self.number_of_samples
         #self.model.init_params = self.model.init_params.replace("m", "")
         means = numpy.ones((self.number_of_states, n_samples))
-        template = numpy.array(range(len(levels) + 1))
+        #template = numpy.array(range(len(levels) + 1))
+        template = numpy.array(range(len(levels)))
         quantiles = self.data.calculate_quantiles(levels)
         for state in xrange(self.number_of_states):
             for sample in xrange(n_samples):
                 mean_class = template[state]
-                if mean_class == 0:
-                    mean = 0
-                else:
-                    mean = quantiles[mean_class - 1, sample]
+                #if mean_class == 0:
+                #    mean = 0
+                #else:
+                #    mean = quantiles[mean_class - 1, sample]
+                mean = quantiles[mean_class, sample]
                 means[state, sample] = mean
         #print means
         self._set_means(means)
@@ -107,7 +145,9 @@ class Model(object):
         n_samples = len(order)
         #self.model.init_params = self.model.init_params.replace("m", "")
         means = numpy.ones((self.number_of_states, n_samples))
-        template = numpy.array([[0, 0], [1, 1], [1, 2], [2, 1], [2, 2]])
+        #template = numpy.array([[0, 0], [1, 1], [1, 2], [2, 1], [2, 2]])
+        number_of_groups = len(set(order))
+        template = self._generate_template_for_grouped_means(number_of_groups)
         quantiles = self.data.calculate_quantiles(levels)
         for state in xrange(self.number_of_states):
             for sample in xrange(n_samples):
@@ -123,10 +163,27 @@ class Model(object):
         self._set_means(means)
         #self.model.means_ = means
 
+    def initialise_grouped_covars(self, order):
+        pass
+
+    def _generate_template_for_grouped_means(self, number_of_groups):
+        template = numpy.array([[0] * number_of_groups])
+        next_states = itertools.product(*[[1, 2]] * number_of_groups)
+        for state in next_states:
+            state = [list(state)]
+            template = numpy.append(template, state, axis=0)
+        if template.shape[0] != self.number_of_states:
+            logging.waring("I'm overwriting your input number of states."
+                           " For %d groups I can only deal with %d states."
+                           " You wanted %d." %
+                           (number_of_groups, template.shape[0], self.number_of_states))
+        return template
+
     def initialise_transition_matrix(self, n_peaks):
         """
         To trzeba recznie zmieniac zeby dostosowac do aktualnych potrzeb.
         W fazie testowania.
+        W sumie bym to wywalila, to nic nie daje.
         """
         self.model.init_params = self.model.init_params.replace("t", "")
         #how_many_peak_states = self.number_of_states - 1
@@ -171,11 +228,21 @@ class Model(object):
 
     def filter_data(self, threshold):
         """
-        Filter the data above threshold.
+        Filter the data above fixed threshold.
+        Currently replaces the values with median value.
+        See data.Data.filter_data for details.
         """
         self.data.filter_data(threshold)
 
     def filter_training_data(self, threshold):
+        """
+        Filter the data for training,
+        removing windows with highest values (outliers),
+        thus deconnecting chromosomes.
+        See data.Data.split_data for details.
+
+        threshold - how many percentiles of windows we want to remove
+        """
         threshold_values = self.data_for_training.find_threshold_value(threshold)
         self.data_for_training.split_data(threshold_values)
 
@@ -209,8 +276,8 @@ class Model(object):
         self.probability, states = self.model.decode(self.data.matrix,
                                                      lengths=self.data.numbers_of_windows)
         logging.info("Is convergent: %s", str(self.model.monitor_.converged))
-        # TODO: metoda add_column dla Data
-        self.data.matrix = numpy.c_[self.data.matrix, states]
+        #self.data.matrix = numpy.c_[self.data.matrix, states]
+        self.data.add_column(states)
         logging.info("Number of iterations till convergence: %i", self.model.monitor_.iter)
         if self.distribution == "NB":
             if self.model.covars_le_means > 0:
@@ -224,6 +291,8 @@ class Model(object):
         For NB distribution converts floats to ints.
 
         TODO: jakos to inaczej zrobic, no co to za kopiowanie kodu.
+
+        Uhm... teraz tylko zmienia floaty na inty, tak?
         """
         if self.distribution == "NB":
             self.data.convert_floats_to_ints()

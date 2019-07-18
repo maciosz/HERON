@@ -82,11 +82,11 @@ def parse_arguments():
                         ' For example, -g 0 1 1 0 0 means that 1., 4. and 5. sample'
                         ' are from one group and 2. and 3. are from another.'
                         ' Currently only 2 groups are allowed.')
-    parser.add_argument('-q', '--quantiles', nargs='+', type=float, default=[0.5, 0.99],
+    parser.add_argument('-q', '--quantiles', nargs='+', type=float, default=[0, 0.5, 0.99],
                         help=
                         'What quantiles should I use as background and enrichment?'
-                        ' Or as any other states, if you want more than 3.'
-                        ' I will always start from value zero anyway.')
+                        ' Or as any other states, if you want more than 3.')
+                        #' I will always start from value zero anyway.')
     return parser.parse_args()
 
 

@@ -17,8 +17,7 @@ class Data(object):
 
     def __init__(self):
         """
-        Create an empty Data object
-        with resolution 1.
+        Create an empty Data object with resolution 1.
         """
         self.matrix = numpy.array([])
         self.window_size = 1
@@ -34,34 +33,31 @@ class Data(object):
         Actually threshold could be given for every patient,
         not as a single value. But for now it's just one float.
         """
-        # TODO: adjust to new transposed version of self.matrix
         medians = []
-        for line in self.matrix:
-            # co? czemu 1000? nie powinno byc threshold??
-            median = numpy.median(filter(lambda x: x <= 1000, line))
+        for line in self.matrix.T:
+            median = numpy.median([x <= threshold for x in line])
             medians.append(median)
-        #means = map(numpy.mean, filter(lambda x: x <= 1000, self.matrix))
-        logging.debug("mediany: %s", str(medians))
+        logging.debug("Medians: %s", str(medians))
         counter = 0
-        for which_line, line in enumerate(self.matrix):
+        for which_line, line in enumerate(self.matrix.T):
             for position, value in enumerate(line):
                 if value > threshold:
-                    logging.debug("podmieniam %f na %f", value, medians[which_line])
-                    self.matrix[which_line][position] = medians[which_line]
+                    #logging.debug("Changing %f to %f", value, medians[which_line])
+                    try:
+                        self.matrix.T[which_line][position] = medians[which_line]
+                    except IndexError:
+                        print which_line, line
+                        print medians
+                        print self.matrix.shape
                     counter += 1
         logging.info("I've reduced values in %i windows to median value.", counter)
 
     def split_data(self, threshold):
         """
         Remove windows with value above given threshold
-        (in any sample!),
-        # for now, but it shouldn't
         splitting chromosome into parts.
         Update chromosome_ends, chromosome_names and numbers_of_windows.
         """
-        # TODO: adjust to new transposed version of self.matrix
-        # TODO: ...and to the fact that threshold is a vector of thresholds
-        current_chromosome = 0
         to_skip = []
         for row_position, line in enumerate(self.matrix):
             for column_position, value in enumerate(line):
@@ -69,7 +65,7 @@ class Data(object):
                     #continue
                     break
                 if value >= threshold[column_position]:
-                    logging.debug("splitting at %d!", row_position)
+                    #logging.debug("splitting at %d!", row_position)
                     to_skip.append(row_position)
         self.matrix = numpy.delete(self.matrix, to_skip, axis=0)
         new_numbers_of_windows = []
@@ -80,11 +76,11 @@ class Data(object):
             chromosome = self._find_chromosome(position)
             chromosomes_to_split[chromosome].append(position)
         logging.debug(chromosomes_to_split)
-        previous_end = -1
+        #previous_end = -1
         for chromosome in xrange(len(self.chromosome_names)):
-            if chromosome > 0:
-                #previous_end = self.chromosome_ends[chromosome - 1]
-                previous_end = self.numbers_of_windows[chromosome-1] #?
+            #if chromosome > 0:
+            #    #previous_end = self.chromosome_ends[chromosome - 1]
+            #    previous_end = self.numbers_of_windows[chromosome-1] #?
             end = self.chromosome_ends[chromosome]
             name = self.chromosome_names[chromosome]
             number_of_windows = self.numbers_of_windows[chromosome]
@@ -115,6 +111,11 @@ class Data(object):
         logging.debug(self.chromosome_ends)
 
     def split_chromosome(self, positions_of_split, chromosome):
+        """
+        Given list of positions to make a split and index of chromosome,
+        return list of new names, ends and numbers_of_windows
+        that this chromosome was splitted to.
+        """
         start = -1
         chromosome_ends = numpy.cumsum(self.numbers_of_windows)
         if chromosome > 0:
@@ -127,7 +128,7 @@ class Data(object):
         positions_of_split.append(chromosome_ends[chromosome])
         for nr, position in enumerate(positions_of_split):
             number_of_windows = position - previous_end - 1
-            if number_of_windows != 0:
+            if number_of_windows > 0:
                 names.append(name+ "_" + str(nr))
                 numbers_of_windows.append(number_of_windows)
                 # to nie uwzglednia koncow chromosomow, one maja inny end
@@ -138,13 +139,16 @@ class Data(object):
         return names, ends, numbers_of_windows
 
     def _find_chromosome(self, position):
-        logging.debug("Looking for %d", position)
+        """
+        In which chromosome given position (window) occurs.
+        """
+        #logging.debug("Looking for %d", position)
         chromosome_ends = numpy.cumsum(self.numbers_of_windows)# * self.window_size
         chromosome_ends = numpy.append([0], chromosome_ends)
-        logging.debug("Chromosome ends:")
-        logging.debug(chromosome_ends)
+        #logging.debug("Chromosome ends:")
+        #logging.debug(chromosome_ends)
         for number, (start, end) in enumerate(zip(chromosome_ends[:-1], chromosome_ends[1:])):
-            logging.debug("number %i, start %i end %i", number, start, end)
+            #logging.debug("number %i, start %i end %i", number, start, end)
             if start <= position < end:
                 return number
 
@@ -273,11 +277,11 @@ class Data(object):
                 self.chromosome_names.append(chromosome)
                 self.numbers_of_windows.append(1)
                 if previous_chromosome:
-                    self.chromosome_ends.append(previous_end)
+                    self.chromosome_ends.append(int(previous_end))
             else:
                 self.numbers_of_windows[-1] += 1
             previous_end, previous_chromosome = end, chromosome
-        self.chromosome_ends.append(end)
+        self.chromosome_ends.append(int(end))
 
     #def which_state_is_peaks(self):
     # TODO: check whether mean is the highest among all samples
@@ -300,12 +304,13 @@ class Data(object):
         self.numbers_of_windows = [int(math.ceil(float(length) / resolution))
                                    for length in self.chromosome_ends]
 
-    def add_data_from_bam(self, filename, mean=True):
+    def add_data_from_bam(self, filename, mean):
         """
         Add coverage data from bam file.
         Assumes some metadata is already added.
+
+        Doesn't work now.
         """
-        #TODO: zmienic na zapisywanie "transponowane", w bedgraphach juz jest
         logging.info("reading in file %s", filename)
         resolution = self.window_size
         bam = pysam.AlignmentFile(filename)
@@ -343,6 +348,8 @@ class Data(object):
                 # to bardzo mocno wydluza
                 # a wziecie jednego na wszystkie chromosomy to przesada w druga strone,
                 # tez wydluza
+                # Teraz zle dziala, bo pileup zostaje "zuzyty" juz przy pierwszym oknie.
+                # Musze jakos sprytniej petlic
                 if mean:
                     value = float(value) / resolution
                 windows.append(value)
@@ -378,7 +385,7 @@ class Data(object):
                           filename.split(".")[1])
             sys.exit()
 
-    def add_data_from_files(self, filenames, resolution, mean):
+    def add_data_from_files(self, filenames, resolution=100, mean=True):
         """
         Add data from multiple files.
         Use the first one as a source of metadata.
@@ -386,26 +393,16 @@ class Data(object):
         files: list of filenames (strings)
         resoluition: desired window size (int)
             (used only for reading bams)
+        mean: bool; whether to calculate mean coverage in windows
+            or not (summaric coverage)
+            (used only for reading bams)
         """
         self.prepare_metadata_from_file(filenames[0], resolution)
         for filename in filenames:
             self.add_data_from_file(filename, mean)
-        #logging.debug("Wymiary macierzy: %d", len(self.matrix))
-        #logging.debug("Liczba kolumn:  %d", len(self.matrix[0]))
         logging.debug("Matrix dimensions: %s", str(self.matrix.shape))
 
     def convert_floats_to_ints(self):
-        #if any(int(self.matrix) != self.matrix):
-        #for line in self.matrix:
-        #    for value in line:
-        #        if value != int(value):
-        #            logging.warning("Warning: your values contain floats,"
-        #                            " I'm converting them to integers.")
-        #            # this appears for every file
-        #            # kind of annoying, would be better if it did only once
-        #            # *or* for each file but togheter with it's name
-        #            break
-        #self.matrix = [[int(i) for i in line] for line in self.matrix]
         if numpy.any(self.matrix != self.matrix.astype(int)):
             logging.warning("Warning: your values contain floats,"
                             " I'm converting them to integers.")
@@ -425,6 +422,9 @@ class Data(object):
             sample_quantiles = numpy.quantile(values, levels)
             quantiles[:, sample] = sample_quantiles
         return quantiles
+
+    def add_column(self, column):
+        self.matrix = numpy.c_[self.matrix, column]
 
 def _check_condition(condition, interval):
     if condition is None:
