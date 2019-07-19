@@ -222,8 +222,10 @@ class GaussianHMM(_BaseHMM):
                 cv, self.covariance_type, self.n_components).copy()
 
     def _compute_log_likelihood(self, X):
-        return log_multivariate_normal_density(
+        lmnd =  log_multivariate_normal_density(
             X, self.means_, self._covars_, self.covariance_type)
+        lmnd = lmnd.astype('float128')
+        return lmnd
 
     # moja wersja, analogiczna do NB, przetestowane ze dziala tak samo:
     #def _compute_log_likelihood(self, X):
