@@ -45,9 +45,14 @@ Initialising means options:
 
 -q - quantiles
 
--g - your samples are divided into two groups;
+-g - your samples are divided into 2 or more groups;
      provide order of these groups here
-     using 0s and 1s.
+     using 0s, 1s and so on.
+
+Initialising covariance options:
+
+-c - works only with -g;
+     should covariance matrix be initialised in a groupped way?
 
 
 ### Current output:

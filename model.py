@@ -38,8 +38,9 @@ class Model(object):
         random_state = numpy.random.RandomState(self.random_seed)
         if self.distribution == "Gauss":
             return hmm.GaussianHMM(self.number_of_states,
-                                   covariance_type='diag',
-                                   n_iter=1000, tol=0.000005,
+                                   covariance_type='full',
+                                   #covariance_type='diag',
+                                   n_iter=1000, tol=0.00005,
                                    random_state=random_state,
                                    #means_weight = 0.00001,
                                    #init_params = 'cts',
@@ -47,7 +48,7 @@ class Model(object):
         elif self.distribution == "NB":
             return hmm.NegativeBinomialHMM(self.number_of_states,
                                            n_iter=1000,
-                                           tol=0.000005,
+                                           tol=0.00005,
                                            random_state=random_state,
                                            verbose=True)
 
@@ -80,18 +81,23 @@ class Model(object):
         means = numpy.array(means).astype('float128')
         self.model.init_params = self.model.init_params.replace("m", "")
         self.model.means_ = means
+        logging.debug("Means set to:")
+        logging.debug(means)
 
     def _set_covars(self, covars):
-        if covars.shape != (self.number_of_states, self.number_of_samples):
+        if covars.shape != (self.number_of_states, self.number_of_samples, self.number_of_samples):
              raise ValueError("Inproper shape of initialised covars;"
-                              " should be n_states * n_samples,"
-                              " in this case %d * %d."
+                              " should be n_states * n_samples * n_samples,"
+                              " in this case %d * %d * %d."
                               " Got %s" % (self.number_of_states,
                                            self.number_of_samples,
-                                           str(means.shape)))
+                                           self.number_of_samples,
+                                           str(covars.shape)))
         covars = numpy.array(covars).astype('float128')
         self.model.init_params = self.model.init_params.replace("c", "")
         self.model.covars_ = covars
+        logging.debug("Covars set to:")
+        logging.debug(covars)
 
     def initialise_individual_means(self, levels):
         """
@@ -164,7 +170,33 @@ class Model(object):
         #self.model.means_ = means
 
     def initialise_grouped_covars(self, order):
-        pass
+        covariances = {}
+        which = {}
+        for group in set(order):
+            which[group] = numpy.array(order) == group
+            data = self.data.matrix[:, which[group]]
+            cov = numpy.cov(data.T)
+            if not cov.shape:
+                cov.shape = (1, 1)
+            covariances[group] = cov
+        #print "covariances:"
+        #print covariances
+        covars = numpy.zeros((self.number_of_states,
+                              self.number_of_samples,
+                              self.number_of_samples))
+        #print "covars:"
+        #print covars
+        for sample in xrange(self.number_of_samples):
+            group = order[sample]
+            #print "sample %d, group %d" % (sample, group)
+            covariance = covariances[group][0, :]
+            #print "covariance:"
+            #print covariance
+            covariances[group] = numpy.delete(covariances[group], 0, 0)
+            #print
+            covars[:, sample, which[group]] = covariance
+        self._set_covars(covars)
+        return covars
 
     def _generate_template_for_grouped_means(self, number_of_groups):
         template = numpy.array([[0] * number_of_groups])
@@ -173,7 +205,7 @@ class Model(object):
             state = [list(state)]
             template = numpy.append(template, state, axis=0)
         if template.shape[0] != self.number_of_states:
-            logging.waring("I'm overwriting your input number of states."
+            logging.warning("I'm overwriting your input number of states."
                            " For %d groups I can only deal with %d states."
                            " You wanted %d." %
                            (number_of_groups, template.shape[0], self.number_of_states))

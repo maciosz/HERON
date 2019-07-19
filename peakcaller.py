@@ -87,6 +87,10 @@ def parse_arguments():
                         'What quantiles should I use as background and enrichment?'
                         ' Or as any other states, if you want more than 3.')
                         #' I will always start from value zero anyway.')
+    parser.add_argument('-c', '--covars', action='store_true',
+                        help=
+                        'Should covars be initialised in a grouped way?'
+                        ' Ignored when -g is not provided.')
     return parser.parse_args()
 
 
@@ -132,6 +136,9 @@ def main():
     if arguments.groups:
         logging.debug("I will initialise grouped means")
         model.initialise_grouped_means(arguments.groups, arguments.quantiles)
+        if arguments.covars:
+            logging.debug("I will initialise grouped covars")
+            model.initialise_grouped_covars(arguments.groups)
     elif arguments.means:
         logging.info("Initialising means...")
         model.initialise_constant_means(arguments.means)
