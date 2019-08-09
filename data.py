@@ -230,24 +230,6 @@ class Data(object):
             window = 0
         return chromosome, window
 
-    def save_intervals_as_bed(self, output, intervals, condition=None, save_value=False):
-        """
-        Given set of intervals, saves it to file in bed format.
-        Chooses only the intervals with value equal to condition.
-        condition = None means all the intervals.
-        save_value = False means write only coordinates.
-        """
-        output = open(output, 'w')
-        for interval in intervals:
-            if _check_condition(condition, interval):
-                if save_value is False:
-                    interval = interval[:-1]
-                else:
-                    interval[-1] = int(interval[-1])
-                output.write('\t'.join(map(str, interval)))
-                output.write('\n')
-        output.close()
-
     def add_data_from_bedgraph(self, filename):
         """
         Add coverage data from single bedgraph file.
@@ -287,6 +269,7 @@ class Data(object):
     # TODO: check whether mean is the highest among all samples
     #   return self.model.means_.mean(axis=1).argmax()
 
+
     def prepare_metadata_from_bam(self, filename, resolution):
         """
         Set chromosome_names, chromosome_ends and numbers_of_windows
@@ -308,14 +291,12 @@ class Data(object):
         """
         Add coverage data from bam file.
         Assumes some metadata is already added.
-
-        Doesn't work now.
         """
-        logging.info("reading in file %s", filename)
         resolution = self.window_size
         bam = pysam.AlignmentFile(filename)
         windows = []
         counter = 0
+        length, prev_length = 0, 0
         for chr_id, chromosome in enumerate(self.chromosome_names):
             pileup = bam.pileup(reference=chromosome)
             try:
@@ -323,38 +304,52 @@ class Data(object):
             except StopIteration:
                 windows.extend([0] * self.numbers_of_windows[chr_id])
                 continue
-                # no reads mapped to this chromosom
-                # should I remove these chromosomes
-                # or (like now) add zeros?
-                # Adding zeros it's easier, I don't have to check anything
-                # between the samples.
-            first_window = first_read / resolution
-            for window in xrange(self.numbers_of_windows[chr_id]):
-                counter += 1
-                if window < first_window:
-                    windows.append(0)
-                    continue
-                if counter % 1000 == 0:
-                    logging.debug("%d windows processed", counter)
-                start = window * resolution
-                end = start + resolution
-                #pileup = bam.pileup(reference=chromosome,
-                #                    start=start, end=end)
-                value = sum(position.n for position in pileup if start <= position.pos < end)
-                # pileup bierze ready zazebiajace sie z tym regionem
-                # ale w szczegolnosci tez wychodzace z niego
-                # also jesli jest pusty to to bedzie zero, wiec ok
-                # ...a skoro i tak musze tak filtrowac to niepotrzebne jest robienie nowych pileupow
-                # to bardzo mocno wydluza
-                # a wziecie jednego na wszystkie chromosomy to przesada w druga strone,
-                # tez wydluza
-                # Teraz zle dziala, bo pileup zostaje "zuzyty" juz przy pierwszym oknie.
-                # Musze jakos sprytniej petlic
-                if mean:
-                    value = float(value) / resolution
-                windows.append(value)
-        logging.debug("Dlugosc tego pliku: %d", len(windows))
-        self.matrix.append(windows)
+            current_window = first_read / resolution
+            # adding zeros if first read is not in the first window
+            windows.extend([0] * (current_window))
+            previous_window = current_window - 1
+            start = current_window * resolution
+            end = start + resolution
+            values = []
+            # robie jeszcze raz bo tamto next wyzej mi zuzylo jedna pozycje
+            # wiem ze mozna zresetowac ale nie pamietam jak
+            pileup = bam.pileup(reference=chromosome)
+            for position in pileup:
+                if start <= position.pos < end:
+                    values.append(position.n)
+                elif position.pos >= end:
+                    value = sum(values)
+                    if mean:
+                        value = float(value) / resolution
+                    windows.append(value)
+                    current_window = position.pos / resolution
+                    if current_window != previous_window + 1:
+                        windows.extend([0] * (current_window - previous_window - 1))
+                    start = current_window * resolution
+                    end = start + resolution
+                    values = [position.n]
+                else:
+                    print "cos nie tak"
+                    print pos.pos
+                    print start, end
+                    print current_window, previous_window
+                    print values
+                previous_window = current_window
+            if current_window != (self.numbers_of_windows[chr_id] - 1):
+                final_window_length = resolution
+            else:
+                final_window_length = self.chromosome_ends[chr_id] % resolution
+                if final_window_length == 0:
+                    final_window_length = resolution
+            #if final_window_length != 0 and len(values) != 0:
+            value = sum(values)
+            if mean:
+                value = float(value) / final_window_length
+            windows.append(value)
+            windows.extend([0] * (self.numbers_of_windows[chr_id] - current_window - 1))
+            length = len(windows)
+            prev_length = length
+        self.matrix = numpy.append(self.matrix, windows)
 
     def prepare_metadata_from_file(self, filename, resolution):
         """
@@ -400,9 +395,17 @@ class Data(object):
         self.prepare_metadata_from_file(filenames[0], resolution)
         for filename in filenames:
             self.add_data_from_file(filename, mean)
+        if len(self.matrix.shape) == 1:
+            self.matrix = self.matrix.reshape((self.matrix.shape[0], 1))
         logging.debug("Matrix dimensions: %s", str(self.matrix.shape))
 
     def convert_floats_to_ints(self):
+        """
+        Converts floats to integers in self.matrix.
+        Issues a warning if that actually was necessary,
+        i.e. if any entry changed its value
+        because of this conversion.
+        """
         if numpy.any(self.matrix != self.matrix.astype(int)):
             logging.warning("Warning: your values contain floats,"
                             " I'm converting them to integers.")
@@ -431,3 +434,21 @@ def _check_condition(condition, interval):
         return True
     value = interval[-1]
     return value == condition
+
+def save_intervals_as_bed(output, intervals, condition=None, save_value=False):
+    """
+    Given set of intervals, saves it to file in bed format.
+    Chooses only the intervals with value equal to condition.
+    condition = None means all the intervals.
+    save_value = False means write only coordinates.
+    """
+    output = open(output, 'w')
+    for interval in intervals:
+        if _check_condition(condition, interval):
+            if save_value is False:
+                interval = interval[:-1]
+            else:
+                interval[-1] = int(interval[-1])
+            output.write('\t'.join(map(str, interval)))
+            output.write('\n')
+    output.close()
