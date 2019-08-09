@@ -28,10 +28,10 @@ possibly with
 
 -d - distribution of emissions (Gauss / NB; defaults to NB)
 
--t - threshold; t promils windows with highest values
+-t - threshold; t promils of windows with highest values
      will be excluded from training.
      They will be included in finding states step.
-     Defaults to 1. 0 mean no thresholding.
+     Defaults to 0, meaning no thresholding.
 
 -r - resolution, that is the desired window size.
      Used only for reading bams, has no effect on bedgraphs.

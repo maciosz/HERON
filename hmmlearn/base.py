@@ -474,6 +474,7 @@ class _BaseHMM(BaseEstimator):
 
     def _do_viterbi_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
+        #logging.debug("Framelogprob dtype: %s", str(framelogprob.dtype))
         state_sequence, logprob = _hmmc._viterbi(
             n_samples, n_components, np.log(self.startprob_),
             np.log(self.transmat_), framelogprob)

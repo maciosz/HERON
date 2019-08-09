@@ -6,7 +6,7 @@ import random
 import itertools
 import numpy
 from hmmlearn import hmm
-from data import Data
+from data import Data, save_intervals_as_bed
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -86,13 +86,13 @@ class Model(object):
 
     def _set_covars(self, covars):
         if covars.shape != (self.number_of_states, self.number_of_samples, self.number_of_samples):
-             raise ValueError("Inproper shape of initialised covars;"
-                              " should be n_states * n_samples * n_samples,"
-                              " in this case %d * %d * %d."
-                              " Got %s" % (self.number_of_states,
-                                           self.number_of_samples,
-                                           self.number_of_samples,
-                                           str(covars.shape)))
+            raise ValueError("Inproper shape of initialised covars;"
+                             " should be n_states * n_samples * n_samples,"
+                             " in this case %d * %d * %d."
+                             " Got %s" % (self.number_of_states,
+                                          self.number_of_samples,
+                                          self.number_of_samples,
+                                          str(covars.shape)))
         covars = numpy.array(covars).astype('float128')
         self.model.init_params = self.model.init_params.replace("c", "")
         self.model.covars_ = covars
@@ -144,9 +144,13 @@ class Model(object):
 
     def initialise_grouped_means(self, order, levels):
         """
-        Currently assumes 5 states, 2 groups.
-        Order should be a list of zeros and ones
-         representing a group for each sample.
+        Initialise means assuming samples are divided
+        into some user-defined groups.
+
+        order - a list of numbers (starting from zero)
+                representing a group for each sample.
+        levels - levels of quantiles to use as zero-state,
+                 background and enrichment, respectively.
         """
         n_samples = len(order)
         #self.model.init_params = self.model.init_params.replace("m", "")
@@ -170,6 +174,15 @@ class Model(object):
         #self.model.means_ = means
 
     def initialise_grouped_covars(self, order):
+        """
+        Initialise covars assuming samples are divided
+        into some user-defined groups.
+        Samples between groups have zero covariance.
+
+        order - a list of numbers (starting from zero)
+                representing a group for each sample.
+        """
+
         covariances = {}
         which = {}
         for group in set(order):
@@ -206,9 +219,9 @@ class Model(object):
             template = numpy.append(template, state, axis=0)
         if template.shape[0] != self.number_of_states:
             logging.warning("I'm overwriting your input number of states."
-                           " For %d groups I can only deal with %d states."
-                           " You wanted %d." %
-                           (number_of_groups, template.shape[0], self.number_of_states))
+                            " For %d groups I can only deal with %d states."
+                            " You wanted %d.",
+                            number_of_groups, template.shape[0], self.number_of_states)
         return template
 
     def initialise_transition_matrix(self, n_peaks):
@@ -341,10 +354,10 @@ class Model(object):
         """
         intervals = self.data.windows_to_intervals(-1)
         output = output_prefix + "_all_states.bed"
-        self.data.save_intervals_as_bed(output, intervals, save_value=True)
+        save_intervals_as_bed(output, intervals, save_value=True)
         for state in xrange(self.number_of_states):
             output_name = output_prefix + "_state_" + str(state) + ".bed"
-            self.data.save_intervals_as_bed(output_name, intervals, state)
+            save_intervals_as_bed(output_name, intervals, state)
 
     def write_stats_to_file(self, output_prefix):
         """

@@ -1,10 +1,11 @@
 #!/usr/bin/python
 
 import copy
-import mynumpy as np
 
-from scipy.stats import nbinom
+#from scipy.stats import nbinom
 from scipy.special import digamma
+
+import mynumpy as np
 
 # dl / dr = sum_t digamma(x_t + r) * post - sum_t digamma(r) * post + sum_t ln(1-p) * post
 
@@ -39,7 +40,7 @@ def calculate_derivative(pstwa, dane, r, p):
         #print "pstwa:", pstwa
         print "p:", p
         print "b:", b
-        print "derivative:", derivative 
+        print "derivative:", derivative
     else:
         print "allright"
     """
@@ -66,7 +67,7 @@ def update_r(r, derivative, delta, stop):
     n_comp, n_var = r.shape
     for i in xrange(n_comp):
         for j in xrange(n_var):
-            if stop[i, j] == True:
+            if stop[i, j] is True:
                 continue
             if abs(derivative[i, j]) <= 1e-10:
                 continue
@@ -129,4 +130,3 @@ def find_r(r_initial, dane, pstwa, p, threshold=5e-2):
             # to niech juz beda te estymacje ktore sa.
             break
     return r
-

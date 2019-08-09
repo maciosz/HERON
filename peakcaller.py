@@ -78,13 +78,13 @@ def parse_arguments():
     parser.add_argument('-g', '--groups', nargs='+', type=int, default=None,
                         help=
                         'Are your samples divided into groups?'
-                        ' If so, specify here the order of samples using 0s and 1s.'
+                        ' If so, specify here the order of samples using 0s, 1s and so on.'
                         ' For example, -g 0 1 1 0 0 means that 1., 4. and 5. sample'
                         ' are from one group and 2. and 3. are from another.'
-                        ' Currently only 2 groups are allowed.')
+                        ' You can specify more than two groups.')
     parser.add_argument('-q', '--quantiles', nargs='+', type=float, default=[0, 0.5, 0.99],
                         help=
-                        'What quantiles should I use as background and enrichment?'
+                        'What quantiles should I use as no-signal, background and enrichment?'
                         ' Or as any other states, if you want more than 3.')
                         #' I will always start from value zero anyway.')
     parser.add_argument('-c', '--covars', action='store_true',
@@ -130,7 +130,7 @@ def main():
     logging.debug("Window size: %i", model.data.window_size)
     logging.debug("Chromosome names: %s", str(model.data.chromosome_names))
     logging.debug("Chromosome ends: %s", str(model.data.chromosome_ends))
-    #model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
+    model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
     #logging.info("Data ready to analyse. Finding peaks")
     logging.info("All files read in.")
     if arguments.groups:
