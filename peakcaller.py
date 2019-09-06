@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python2.7
 
 import sys
 import copy
@@ -130,7 +130,7 @@ def main():
     logging.debug("Window size: %i", model.data.window_size)
     logging.debug("Chromosome names: %s", str(model.data.chromosome_names))
     logging.debug("Chromosome ends: %s", str(model.data.chromosome_ends))
-    model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
+    #model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
     #logging.info("Data ready to analyse. Finding peaks")
     logging.info("All files read in.")
     if arguments.groups:

@@ -77,21 +77,21 @@ def update_r(r, derivative, delta, stop):
                 elif derivative[i, j] > 0:
                     delta[i, j] = r[i, j] * 10 + 5
                 else:
-                    print "cos nie tak, pewnie nan"
+                    print("cos nie tak, pewnie nan")
             elif delta[i, j] < 0:
                 if derivative[i, j] < 0:
                     pass
                 elif derivative[i, j] > 0:
                     delta[i, j] *= -0.5
                 else:
-                    print "cos nie tak, pewnie nan"
+                    print("cos nie tak, pewnie nan")
             elif delta[i, j] > 0:
                 if derivative[i, j] < 0:
                     delta[i, j] *= -0.5
                 elif derivative[i, j] > 0:
                     pass
                 else:
-                    print "cos nie tak, pewnie nan"
+                    print("cos nie tak, pewnie nan")
             r[i, j] += delta[i, j]
             if r[i, j] <= 0:
                 if derivative[i, j] < 0:

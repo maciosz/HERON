@@ -6,7 +6,7 @@ import logging
 from collections import deque
 
 #import numpy as np
-import mynumpy as np
+import hmmlearn.mynumpy as np
 from scipy.misc import logsumexp
 from sklearn.base import BaseEstimator, _pprint
 from sklearn.utils import check_array, check_random_state

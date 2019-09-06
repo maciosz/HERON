@@ -11,7 +11,7 @@ The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 import logging
 #import numpy as np
-import mynumpy as np
+import hmmlearn.mynumpy as np
 from scipy.stats import nbinom, norm
 from sklearn import cluster
 from sklearn.mixture import (
@@ -917,8 +917,8 @@ class NegativeBinomialHMM(_BaseHMM):
 
         r_initial = means**2 / (covars - means)
         if np.any(np.isnan(r_initial)):
-            print "r_initial jest nan, paczaj:"
-            print r_initial
+            print("r_initial jest nan, paczaj:")
+            print(r_initial)
             r_initial = self.r_
 
         p = stats['obs'] / (self.r_ * stats['post'][:, np.newaxis] + stats['obs'])

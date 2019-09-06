@@ -46,9 +46,9 @@ class Data(object):
                     try:
                         self.matrix.T[which_line][position] = medians[which_line]
                     except IndexError:
-                        print which_line, line
-                        print medians
-                        print self.matrix.shape
+                        print(which_line, line)
+                        print(medians)
+                        print(self.matrix.shape)
                     counter += 1
         logging.info("I've reduced values in %i windows to median value.", counter)
 
@@ -196,18 +196,7 @@ class Data(object):
         previous_chromosome = 0
         window = -1
         for value in self.matrix[:, which_line]:
-            try:
-                # chyba moge wywalic tego try'a?
-                chromosome, window = self._goto_next_window(previous_chromosome, window)
-            except IndexError:
-                logging.error("Index error w goto_next_window")
-                logging.error("Zapisuje %d linie", which_line)
-                logging.error("Jestem na chromosomie %d, w oknie %d", previous_chromosome, window)
-                logging.error("Atrybuty chromosomowe:")
-                logging.error(str(self.numbers_of_windows))
-                logging.error(str(self.chromosome_names))
-                logging.error(str(self.chromosome_ends))
-                break
+            chromosome, window = self._goto_next_window(previous_chromosome, window)
             if chromosome != previous_chromosome:
                 end = self.chromosome_ends[previous_chromosome]
             elif value != previous_value and previous_value is not None:
@@ -329,11 +318,11 @@ class Data(object):
                     end = start + resolution
                     values = [position.n]
                 else:
-                    print "cos nie tak"
-                    print pos.pos
-                    print start, end
-                    print current_window, previous_window
-                    print values
+                    print("cos nie tak")
+                    print(pos.pos)
+                    print(start, end)
+                    print(current_window, previous_window)
+                    print(values)
                 previous_window = current_window
             if current_window != (self.numbers_of_windows[chr_id] - 1):
                 final_window_length = resolution
