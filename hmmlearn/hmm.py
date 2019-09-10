@@ -24,7 +24,7 @@ from .base import _BaseHMM
 from .utils import iter_from_X_lengths, normalize, fill_covars
 
 
-__all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM", "NegativeBinomial"]
+__all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM", "NegativeBinomialHMM"]
 
 COVARIANCE_TYPES = frozenset(("spherical", "diag", "full", "tied"))
 
@@ -998,3 +998,31 @@ class GMMHMM(_BaseHMM):
         self.weights_ = new_weights
         self.means_ = new_means
         self.covars_ = new_cov
+
+class NegativeBinomialHMM(_BaseHMM):
+
+    def __init__(self, n_components):
+        _BaseHMM.__init__(self, n_components)
+
+    def _init(self, X, lengths=None):
+        super(NegativeBinomialHMM, self)._init(X, lengths)
+
+    def _check(self):
+        super(NegativeBinomialHMM, self)._check()
+
+    def _compute_log_likelihood(self, X):
+        pass
+
+    def _generate_sample_from_state(self, state, random_state=None):
+        pass
+
+    def _initialize_sufficient_statistics(self):
+        super(NegativeBinomialHMM, self)._initialize_sufficient_statistics()
+
+    def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
+                                          posteriors, fwdlattice, bwdlattice):
+        super(NegativeBinomialHMM, self)._accumulate_sufficient_statistics(
+                   stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
+
+    def _do_mstep(self, stats):
+        super(NegativeBinomialHMM, self)._do_mstep()
