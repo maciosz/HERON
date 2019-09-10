@@ -77,7 +77,7 @@ class Data(object):
             chromosomes_to_split[chromosome].append(position)
         logging.debug(chromosomes_to_split)
         #previous_end = -1
-        for chromosome in xrange(len(self.chromosome_names)):
+        for chromosome in range(len(self.chromosome_names)):
             #if chromosome > 0:
             #    #previous_end = self.chromosome_ends[chromosome - 1]
             #    previous_end = self.numbers_of_windows[chromosome-1] #?
@@ -408,7 +408,7 @@ class Data(object):
         #quantiles = numpy.quantile(self.matrix, levels, axis=0)
         n_samples = self.matrix.shape[1]
         quantiles = numpy.zeros((len(levels), n_samples))
-        for sample in xrange(n_samples):
+        for sample in range(n_samples):
             values = self.matrix[:, sample]
             values = values[values != 0]
             sample_quantiles = numpy.quantile(values, levels)

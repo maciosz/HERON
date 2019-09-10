@@ -5,15 +5,14 @@ import sys
 import logging
 from collections import deque
 
-#import numpy as np
 import hmmlearn.mynumpy as np
-from scipy.misc import logsumexp
-from sklearn.base import BaseEstimator, _pprint
+from scipy.special import logsumexp
+from sklearn.base import BaseEstimator
 from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from . import _hmmc
-from .utils import normalize, log_normalize, iter_from_X_lengths
+from .utils import normalize, log_normalize, iter_from_X_lengths, log_mask_zero
 
 
 #: Supported decoder algorithms.
@@ -22,7 +21,6 @@ DECODER_ALGORITHMS = frozenset(("viterbi", "map"))
 
 class ConvergenceMonitor(object):
     """Monitors and reports convergence to :data:`sys.stdout`.
-    No, to the log now. As info.
 
     Parameters
     ----------
@@ -48,6 +46,27 @@ class ConvergenceMonitor(object):
 
     iter : int
         Number of iterations performed while training the model.
+
+    Examples
+    --------
+    Use custom convergence criteria by subclassing ``ConvergenceMonitor``
+    and redefining the ``converged`` method. The resulting subclass can
+    be used by creating an instance and pointing a model's ``monitor_``
+    attribute to it prior to fitting.
+
+    >>> from hmmlearn.base import ConvergenceMonitor
+    >>> from hmmlearn import hmm
+    >>>
+    >>> class ThresholdMonitor(ConvergenceMonitor):
+    ...     @property
+    ...     def converged(self):
+    ...         return (self.iter == self.n_iter or
+    ...                 self.history[-1] >= self.tol)
+    >>>
+    >>> model = hmm.GaussianHMM(n_components=2, tol=5, verbose=True)
+    >>> model.monitor_ = ThresholdMonitor(model.monitor_.tol,
+    ...                                   model.monitor_.n_iter,
+    ...                                   model.monitor_.verbose)
     """
     _template = "Iteration {iter:>10d} {logprob:>16.4f} {delta:>+16.4f}"
 
@@ -60,9 +79,15 @@ class ConvergenceMonitor(object):
 
     def __repr__(self):
         class_name = self.__class__.__name__
-        params = dict(vars(self), history=list(self.history))
-        return "{0}({1})".format(
-            class_name, _pprint(params, offset=len(class_name)))
+        params = sorted(dict(vars(self), history=list(self.history)).items())
+        return ("{}(\n".format(class_name)
+                + "".join(map("    {}={},\n".format, *zip(*params)))
+                + ")")
+
+    def _reset(self):
+        """Reset the monitor's state."""
+        self.iter = 0
+        self.history.clear()
 
     def report(self, logprob):
         """Reports convergence to :data:`sys.stdout`.
@@ -82,7 +107,7 @@ class ConvergenceMonitor(object):
             delta = logprob - self.history[-1] if self.history else np.nan
             message = self._template.format(
                 iter=self.iter + 1, logprob=logprob, delta=delta)
-            #print(message, sys.stdout)
+            #print(message, file=sys.stdout)
             logging.info(message)
 
         self.history.append(logprob)
@@ -92,20 +117,17 @@ class ConvergenceMonitor(object):
     def converged(self):
         """``True`` if the EM algorithm converged and ``False`` otherwise."""
         # XXX we might want to check that ``logprob`` is non-decreasing.
-        # We HAVE to do that.
-        # ...and we should return some warning if it does,
-        # because it shouldn't happen in EM algorithm.
+        # and return a warning if it is not.
         return (self.iter == self.n_iter or
                 (len(self.history) == 2 and
-                 self.history[1] - self.history[0] < self.tol
-                 and self.history[1] - self.history[0] > 0))
+                 self.history[1] - self.history[0] < self.tol))
 
 
 class _BaseHMM(BaseEstimator):
-    """Base class for Hidden Markov Models.
+    r"""Base class for Hidden Markov Models.
 
     This class allows for easy evaluation of, sampling from, and
-    maximum-likelihood estimation of the parameters of a HMM.
+    maximum a posteriori estimation of the parameters of a HMM.
 
     See the instance documentation for details specific to a
     particular object.
@@ -115,17 +137,19 @@ class _BaseHMM(BaseEstimator):
     n_components : int
         Number of states in the model.
 
-    startprob_prior : array, shape (n_components, )
-        Initial state occupation prior distribution.
+    startprob_prior : array, shape (n_components, ), optional
+        Parameters of the Dirichlet prior distribution for
+        :attr:`startprob_`.
 
-    transmat_prior : array, shape (n_components, n_components)
-        Matrix of prior transition probabilities between states.
+    transmat_prior : array, shape (n_components, n_components), optional
+        Parameters of the Dirichlet prior distribution for each row
+        of the transition probabilities :attr:`transmat_`.
 
-    algorithm : string
+    algorithm : string, optional
         Decoder algorithm. Must be one of "viterbi" or "map".
         Defaults to "viterbi".
 
-    random_state: RandomState or an int seed
+    random_state: RandomState or an int seed, optional
         A random number generator instance.
 
     n_iter : int, optional
@@ -180,6 +204,18 @@ class _BaseHMM(BaseEstimator):
         self.n_iter = n_iter
         self.tol = tol
         self.verbose = verbose
+        self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
+
+    def get_stationary_distribution(self):
+        """Compute the stationary distribution of states.
+        """
+        # The stationary distribution is proportional to the left-eigenvector
+        # associated with the largest eigenvalue (i.e., 1) of the transition
+        # matrix.
+        check_is_fitted(self, "transmat_")
+        eigvals, eigvecs = np.linalg.eig(self.transmat_.T)
+        eigvec = np.real_if_close(eigvecs[:, np.argmax(eigvals)])
+        return eigvec / eigvec.sum()
 
     def score_samples(self, X, lengths=None):
         """Compute the log probability under the model and compute posteriors.
@@ -303,7 +339,7 @@ class _BaseHMM(BaseEstimator):
 
         algorithm = algorithm or self.algorithm
         if algorithm not in DECODER_ALGORITHMS:
-            raise ValueError("Unknown decoder {0!r}".format(algorithm))
+            raise ValueError("Unknown decoder {!r}".format(algorithm))
 
         decoder = {
             "viterbi": self._decode_viterbi,
@@ -381,6 +417,7 @@ class _BaseHMM(BaseEstimator):
             State sequence produced by the model.
         """
         check_is_fitted(self, "startprob_")
+        self._check()
 
         if random_state is None:
             random_state = self.random_state
@@ -425,28 +462,11 @@ class _BaseHMM(BaseEstimator):
         self : object
             Returns self.
         """
-        try:
-            X = check_array(X)
-        except ValueError:
-            logging.error("Achtung! Value Error!")
-            logging.error("X: typ, typ [0], typ [0][0], len, len elementow")
-            logging.error(type(X))
-            logging.error(type(X[0]))
-            try:
-                logging.error(type(X[0][0]))
-            except:
-                logging.error("nie ma elementu [0][0]")
-            logging.error(len(X))
-            for i in X:
-                try:
-                    logging.error(len(i))
-                except:
-                    logging.error("nie ma dlugosci")
-            sys.exit()
+        X = check_array(X)
         self._init(X, lengths=lengths)
         self._check()
 
-        self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
+        self.monitor_._reset()
         for iter in range(self.n_iter):
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
@@ -455,13 +475,12 @@ class _BaseHMM(BaseEstimator):
                 framelogprob = np.asarray(framelogprob, dtype=np.float128)
                 logprob, fwdlattice = self._do_forward_pass(framelogprob)
                 curr_logprob += logprob
-                if (not curr_logprob < 10) and (not curr_logprob > 10):
-                    logging.debug("Curr_logprob jest nan")
                 bwdlattice = self._do_backward_pass(framelogprob)
                 posteriors = self._compute_posteriors(fwdlattice, bwdlattice)
                 self._accumulate_sufficient_statistics(
                     stats, X[i:j], framelogprob, posteriors, fwdlattice,
                     bwdlattice)
+
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
             self._do_mstep(stats)
@@ -474,32 +493,27 @@ class _BaseHMM(BaseEstimator):
 
     def _do_viterbi_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
-        #logging.debug("Framelogprob dtype: %s", str(framelogprob.dtype))
         state_sequence, logprob = _hmmc._viterbi(
-            n_samples, n_components, np.log(self.startprob_),
-            np.log(self.transmat_), framelogprob)
+            n_samples, n_components, log_mask_zero(self.startprob_),
+            log_mask_zero(self.transmat_), framelogprob)
         return logprob, state_sequence
 
     def _do_forward_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         fwdlattice = np.zeros((n_samples, n_components))
-        #types = [i.dtype for i in (np.log(self.startprob_),
-        #                           np.log(self.transmat_),
-        #                           framelogprob,
-        #                           fwdlattice)]
-        #print(types)
         _hmmc._forward(n_samples, n_components,
-                       np.log(self.startprob_),
-                       np.log(self.transmat_),
+                       log_mask_zero(self.startprob_),
+                       log_mask_zero(self.transmat_),
                        framelogprob, fwdlattice)
-        return logsumexp(fwdlattice[-1]), fwdlattice
+        with np.errstate(under="ignore"):
+            return logsumexp(fwdlattice[-1]), fwdlattice
 
     def _do_backward_pass(self, framelogprob):
         n_samples, n_components = framelogprob.shape
         bwdlattice = np.zeros((n_samples, n_components))
         _hmmc._backward(n_samples, n_components,
-                        np.log(self.startprob_),
-                        np.log(self.transmat_),
+                        log_mask_zero(self.startprob_),
+                        log_mask_zero(self.transmat_),
                         framelogprob, bwdlattice)
         return bwdlattice
 
@@ -510,7 +524,8 @@ class _BaseHMM(BaseEstimator):
         # pruned too aggressively.
         log_gamma = fwdlattice + bwdlattice
         log_normalize(log_gamma, axis=1)
-        return np.exp(log_gamma)
+        with np.errstate(under="ignore"):
+            return np.exp(log_gamma)
 
     def _init(self, X, lengths):
         """Initializes model parameters prior to fitting.
@@ -545,7 +560,7 @@ class _BaseHMM(BaseEstimator):
         if len(self.startprob_) != self.n_components:
             raise ValueError("startprob_ must have length n_components")
         if not np.allclose(self.startprob_.sum(), 1.0):
-            raise ValueError("startprob_ must sum to 1.0 (got {0:.4f})"
+            raise ValueError("startprob_ must sum to 1.0 (got {:.4f})"
                              .format(self.startprob_.sum()))
 
         self.transmat_ = np.asarray(self.transmat_)
@@ -553,7 +568,7 @@ class _BaseHMM(BaseEstimator):
             raise ValueError(
                 "transmat_ must have shape (n_components, n_components)")
         if not np.allclose(self.transmat_.sum(axis=1), 1.0):
-            raise ValueError("rows of transmat_ must sum to 1.0 (got {0})"
+            raise ValueError("rows of transmat_ must sum to 1.0 (got {})"
                              .format(self.transmat_.sum(axis=1)))
 
     def _compute_log_likelihood(self, X):
@@ -652,11 +667,13 @@ class _BaseHMM(BaseEstimator):
             if n_samples <= 1:
                 return
 
-            lneta = np.zeros((n_samples - 1, n_components, n_components))
-            _hmmc._compute_lneta(n_samples, n_components, fwdlattice,
-                                 np.log(self.transmat_),
-                                 bwdlattice, framelogprob, lneta)
-            stats['trans'] += np.exp(logsumexp(lneta, axis=0))
+            log_xi_sum = np.full((n_components, n_components), -np.inf)
+            _hmmc._compute_log_xi_sum(n_samples, n_components, fwdlattice,
+                                      log_mask_zero(self.transmat_),
+                                      bwdlattice, framelogprob,
+                                      log_xi_sum)
+            with np.errstate(under="ignore"):
+                stats['trans'] += np.exp(log_xi_sum)
 
     def _do_mstep(self, stats):
         """Performs the M-step of EM algorithm.
@@ -674,10 +691,7 @@ class _BaseHMM(BaseEstimator):
                                        self.startprob_, startprob_)
             normalize(self.startprob_)
         if 't' in self.params:
-            logging.debug("aktualizuje transmat")
             transmat_ = self.transmat_prior - 1.0 + stats['trans']
             self.transmat_ = np.where(self.transmat_ == 0.0,
                                       self.transmat_, transmat_)
             normalize(self.transmat_, axis=1)
-            logging.debug("I po:")
-            logging.debug(self.transmat_)

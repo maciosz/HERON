@@ -8,7 +8,8 @@ _ones = ones
 _full = full
 
 def empty(*args, **kwargs):
-    kwargs.update(dtype=float128)
+    if 'dtype' not in kwargs.keys():
+        kwargs.update(dtype=float128)
     return _empty(*args, **kwargs)
 
 def ndarray(*args, **kwargs):
@@ -20,9 +21,11 @@ def ones(*args, **kwargs):
     return _ones(*args, **kwargs)
 
 def zeros(*args, **kwargs):
-    kwargs.update(dtype=float128)
+    if 'dtype' not in kwargs.keys():
+        kwargs.update(dtype=float128)
     return _zeros(*args, **kwargs)
 
 def full(*args, **kwargs):
-    kwargs.update(dtype=float128)
+    if 'dtype' not in kwargs.keys():
+        kwargs.update(dtype=float128)
     return _full(*args, **kwargs)

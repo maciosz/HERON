@@ -129,8 +129,8 @@ class Model(object):
         #template = numpy.array(range(len(levels) + 1))
         template = numpy.array(range(len(levels)))
         quantiles = self.data.calculate_quantiles(levels)
-        for state in xrange(self.number_of_states):
-            for sample in xrange(n_samples):
+        for state in range(self.number_of_states):
+            for sample in range(n_samples):
                 mean_class = template[state]
                 #if mean_class == 0:
                 #    mean = 0
@@ -159,8 +159,8 @@ class Model(object):
         number_of_groups = len(set(order))
         template = self._generate_template_for_grouped_means(number_of_groups)
         quantiles = self.data.calculate_quantiles(levels)
-        for state in xrange(self.number_of_states):
-            for sample in xrange(n_samples):
+        for state in range(self.number_of_states):
+            for sample in range(n_samples):
                 group = order[sample]
                 mean_class = template[state, group]
                 if mean_class == 0:
@@ -199,7 +199,7 @@ class Model(object):
                               self.number_of_samples))
         #print "covars:"
         #print covars
-        for sample in xrange(self.number_of_samples):
+        for sample in range(self.number_of_samples):
             group = order[sample]
             #print "sample %d, group %d" % (sample, group)
             covariance = covariances[group][0, :]
@@ -355,7 +355,7 @@ class Model(object):
         intervals = self.data.windows_to_intervals(-1)
         output = output_prefix + "_all_states.bed"
         save_intervals_as_bed(output, intervals, save_value=True)
-        for state in xrange(self.number_of_states):
+        for state in range(self.number_of_states):
             output_name = output_prefix + "_state_" + str(state) + ".bed"
             save_intervals_as_bed(output_name, intervals, state)
 

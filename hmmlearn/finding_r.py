@@ -5,7 +5,7 @@ import copy
 #from scipy.stats import nbinom
 from scipy.special import digamma
 
-import mynumpy as np
+import hmmlearn.mynumpy as np
 
 # dl / dr = sum_t digamma(x_t + r) * post - sum_t digamma(r) * post + sum_t ln(1-p) * post
 
@@ -65,8 +65,8 @@ def update_r(r, derivative, delta, stop):
     #  wystarczy mi nieduza pochodna, niekoniecznie bardzo bliska zero.
     #  Ale to juz bardziej skomplikowane do zaimplementowania.
     n_comp, n_var = r.shape
-    for i in xrange(n_comp):
-        for j in xrange(n_var):
+    for i in range(n_comp):
+        for j in range(n_var):
             if stop[i, j] is True:
                 continue
             if abs(derivative[i, j]) <= 1e-10:

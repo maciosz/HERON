@@ -1,129 +1,157 @@
-cimport cython
-cimport numpy as np
+# cython: language_level=3, boundscheck=False, wraparound=False
 
-import numpy as np
-from libc.math cimport exp, log
+from cython cimport view
+from numpy.math cimport expl, logl, log1pl, isinf, fabsl, INFINITY
 
-#ctypedef np.float64_t dtype_t
+import hmmlearn.mynumpy as np
+
 ctypedef long double dtype_t
 
-cdef dtype_t _NINF = -np.inf
 
-@cython.boundscheck(False)
-cdef inline dtype_t _max(dtype_t[:] values):
-    # find maximum value (builtin 'max' is unrolled for speed)
-    cdef dtype_t value
-    cdef dtype_t vmax = _NINF
-    for i in range(values.shape[0]):
-        value = values[i]
-        if value > vmax:
-            vmax = value
-    return vmax
-
-@cython.boundscheck(False)
-cdef dtype_t _logsumexp(dtype_t[:] X):
-    cdef dtype_t vmax = _max(X)
-    cdef dtype_t power_sum = 0
-
+cdef inline int _argmax(dtype_t[:] X) nogil:
+    cdef dtype_t X_max = -INFINITY
+    cdef int pos = 0
+    cdef int i
     for i in range(X.shape[0]):
-        power_sum += exp(X[i] - vmax)
+        if X[i] > X_max:
+            X_max = X[i]
+            pos = i
+    return pos
 
-    return log(power_sum) + vmax
+
+cdef inline dtype_t _max(dtype_t[:] X) nogil:
+    return X[_argmax(X)]
 
 
-@cython.boundscheck(False)
-def _forward(int n_observations, int n_components,
-        np.ndarray[dtype_t, ndim=1] log_startprob,
-        np.ndarray[dtype_t, ndim=2] log_transmat,
-        np.ndarray[dtype_t, ndim=2] framelogprob,
-        np.ndarray[dtype_t, ndim=2] fwdlattice):
+cdef inline dtype_t _logsumexp(dtype_t[:] X) nogil:
+    cdef dtype_t X_max = _max(X)
+    if isinf(X_max):
+        return -INFINITY
+
+    cdef dtype_t acc = 0
+    for i in range(X.shape[0]):
+        acc += expl(X[i] - X_max)
+
+    return logl(acc) + X_max
+
+
+cdef inline dtype_t _logaddexp(dtype_t a, dtype_t b) nogil:
+    if isinf(a) and a < 0:
+        return b
+    elif isinf(b) and b < 0:
+        return a
+    else:
+        return max(a, b) + log1pl(expl(-fabsl(a - b)))
+
+
+def _forward(int n_samples, int n_components,
+             dtype_t[:] log_startprob,
+             dtype_t[:, :] log_transmat,
+             dtype_t[:, :] framelogprob,
+             dtype_t[:, :] fwdlattice):
 
     cdef int t, i, j
-    cdef np.ndarray[dtype_t, ndim=1] work_buffer
-    work_buffer = np.zeros(n_components, dtype=np.float128)
+    cdef dtype_t[::view.contiguous] work_buffer = np.zeros(n_components)
 
-    for i in range(n_components):
-        fwdlattice[0, i] = log_startprob[i] + framelogprob[0, i]
+    with nogil:
+        for i in range(n_components):
+            fwdlattice[0, i] = log_startprob[i] + framelogprob[0, i]
 
-    for t in range(1, n_observations):
-        for j in range(n_components):
+        for t in range(1, n_samples):
+            for j in range(n_components):
+                for i in range(n_components):
+                    work_buffer[i] = fwdlattice[t - 1, i] + log_transmat[i, j]
+
+                fwdlattice[t, j] = _logsumexp(work_buffer) + framelogprob[t, j]
+
+
+def _backward(int n_samples, int n_components,
+              dtype_t[:] log_startprob,
+              dtype_t[:, :] log_transmat,
+              dtype_t[:, :] framelogprob,
+              dtype_t[:, :] bwdlattice):
+
+    cdef int t, i, j
+    cdef dtype_t[::view.contiguous] work_buffer = np.zeros(n_components)
+
+    with nogil:
+        for i in range(n_components):
+            bwdlattice[n_samples - 1, i] = 0.0
+
+        for t in range(n_samples - 2, -1, -1):
             for i in range(n_components):
-                work_buffer[i] = fwdlattice[t - 1, i] + log_transmat[i, j]
-            fwdlattice[t, j] = _logsumexp(work_buffer) + framelogprob[t, j]
+                for j in range(n_components):
+                    work_buffer[j] = (log_transmat[i, j]
+                                      + framelogprob[t + 1, j]
+                                      + bwdlattice[t + 1, j])
+                bwdlattice[t, i] = _logsumexp(work_buffer)
 
 
-@cython.boundscheck(False)
-def _backward(int n_observations, int n_components,
-        np.ndarray[dtype_t, ndim=1] log_startprob,
-        np.ndarray[dtype_t, ndim=2] log_transmat,
-        np.ndarray[dtype_t, ndim=2] framelogprob,
-        np.ndarray[dtype_t, ndim=2] bwdlattice):
+def _compute_log_xi_sum(int n_samples, int n_components,
+                        dtype_t[:, :] fwdlattice,
+                        dtype_t[:, :] log_transmat,
+                        dtype_t[:, :] bwdlattice,
+                        dtype_t[:, :] framelogprob,
+                        dtype_t[:, :] log_xi_sum):
 
     cdef int t, i, j
-    cdef double logprob
-    cdef np.ndarray[dtype_t, ndim = 1] work_buffer
-    work_buffer = np.zeros(n_components, dtype=np.float128)
+    cdef dtype_t[:, ::view.contiguous] work_buffer = \
+        np.full((n_components, n_components), -INFINITY)
+    cdef dtype_t logprob = _logsumexp(fwdlattice[n_samples - 1])
 
-    for i in range(n_components):
-        bwdlattice[n_observations - 1, i] = 0.0
+    with nogil:
+        for t in range(n_samples - 1):
+            for i in range(n_components):
+                for j in range(n_components):
+                    work_buffer[i, j] = (fwdlattice[t, i]
+                                         + log_transmat[i, j]
+                                         + framelogprob[t + 1, j]
+                                         + bwdlattice[t + 1, j]
+                                         - logprob)
 
-    for t in range(n_observations - 2, -1, -1):
-        for i in range(n_components):
-            for j in range(n_components):
-                work_buffer[j] = log_transmat[i, j] + framelogprob[t + 1, j] \
-                    + bwdlattice[t + 1, j]
-            bwdlattice[t, i] = _logsumexp(work_buffer)
-
-
-@cython.boundscheck(False)
-def _compute_lneta(int n_observations, int n_components,
-        np.ndarray[dtype_t, ndim=2] fwdlattice,
-        np.ndarray[dtype_t, ndim=2] log_transmat,
-        np.ndarray[dtype_t, ndim=2] bwdlattice,
-        np.ndarray[dtype_t, ndim=2] framelogprob,
-        np.ndarray[dtype_t, ndim=3] lneta):
-
-    cdef dtype_t logprob = _logsumexp(fwdlattice[-1])
-    cdef int t, i, j
-    for t in range(n_observations - 1):
-        for i in range(n_components):
-            for j in range(n_components):
-                lneta[t, i, j] = (fwdlattice[t, i] + log_transmat[i, j]
-                                  + framelogprob[t + 1, j]
-                                  + bwdlattice[t + 1, j]
-                                  - logprob)
+            for i in range(n_components):
+                for j in range(n_components):
+                    log_xi_sum[i, j] = _logaddexp(log_xi_sum[i, j],
+                                                  work_buffer[i, j])
 
 
-@cython.boundscheck(False)
-def _viterbi(int n_observations, int n_components,
-        np.ndarray[dtype_t, ndim=1] log_startprob,
-        np.ndarray[dtype_t, ndim=2] log_transmat,
-        np.ndarray[dtype_t, ndim=2] framelogprob):
+def _viterbi(int n_samples, int n_components,
+             dtype_t[:] log_startprob,
+             dtype_t[:, :] log_transmat,
+             dtype_t[:, :] framelogprob):
 
-    cdef int t, max_pos
-    cdef np.ndarray[dtype_t, ndim = 2] viterbi_lattice
-    cdef np.ndarray[np.int_t, ndim = 1] state_sequence
+    cdef int i, j, t, where_from
     cdef dtype_t logprob
-    cdef np.ndarray[dtype_t, ndim = 2] work_buffer
 
-    # Initialization
-    state_sequence = np.empty(n_observations, dtype=np.int)
-    viterbi_lattice = np.zeros((n_observations, n_components), dtype=np.float128)
-    viterbi_lattice[0] = log_startprob + framelogprob[0]
+    cdef int[::view.contiguous] state_sequence = \
+        np.empty(n_samples, dtype=np.int32)
+    cdef dtype_t[:, ::view.contiguous] viterbi_lattice = \
+        np.zeros((n_samples, n_components))
+    cdef dtype_t[::view.contiguous] work_buffer = np.empty(n_components)
 
-    # Induction
-    for t in range(1, n_observations):
-        work_buffer = viterbi_lattice[t-1] + log_transmat.T
-        viterbi_lattice[t] = np.max(work_buffer, axis=1) + framelogprob[t]
+    with nogil:
+        for i in range(n_components):
+            viterbi_lattice[0, i] = log_startprob[i] + framelogprob[0, i]
 
-    # Observation traceback
-    max_pos = np.argmax(viterbi_lattice[n_observations - 1, :])
-    state_sequence[n_observations - 1] = max_pos
-    logprob = viterbi_lattice[n_observations - 1, max_pos]
+        # Induction
+        for t in range(1, n_samples):
+            for i in range(n_components):
+                for j in range(n_components):
+                    work_buffer[j] = (log_transmat[j, i]
+                                      + viterbi_lattice[t - 1, j])
 
-    for t in range(n_observations - 2, -1, -1):
-        max_pos = np.argmax(viterbi_lattice[t, :] \
-                + log_transmat[:, state_sequence[t + 1]])
-        state_sequence[t] = max_pos
+                viterbi_lattice[t, i] = _max(work_buffer) + framelogprob[t, i]
 
-    return state_sequence, logprob
+        # Observation traceback
+        state_sequence[n_samples - 1] = where_from = \
+            _argmax(viterbi_lattice[n_samples - 1])
+        logprob = viterbi_lattice[n_samples - 1, where_from]
+
+        for t in range(n_samples - 2, -1, -1):
+            for i in range(n_components):
+                work_buffer[i] = (viterbi_lattice[t, i]
+                                  + log_transmat[i, where_from])
+
+            state_sequence[t] = where_from = _argmax(work_buffer)
+
+    return np.asarray(state_sequence), logprob

@@ -1,4 +1,4 @@
-#!/usr/bin/env python2.7
+#!/usr/bin/env python
 
 import sys
 import copy
@@ -110,12 +110,13 @@ def main():
                         level=logging_level,
                         format='%(levelname)s\t%(asctime)s\t%(message)s',
                         datefmt="%d.%m.%Y %H:%M:%S")
-    stdout_logger = logging.getLogger('STDOUT')
-    stream_to_logger = StreamToLogger(stdout_logger, logging.INFO)
-    sys.stdout = stream_to_logger
-    stderr_logger = logging.getLogger('STDERR')
-    stream_to_logger = StreamToLogger(stderr_logger, logging.ERROR)
-    sys.stderr = stream_to_logger
+    # to fix, sth not working after 2.7 -> 3.6 transfer
+    #stdout_logger = logging.getLogger('STDOUT')
+    #stream_to_logger = StreamToLogger(stdout_logger, logging.INFO)
+    #sys.stdout = stream_to_logger
+    #stderr_logger = logging.getLogger('STDERR')
+    #stream_to_logger = StreamToLogger(stderr_logger, logging.ERROR)
+    #sys.stderr = stream_to_logger
     logging.info("Command used: %s", " ".join(sys.argv))
     logging.info("Creating data structure...")
     model = Model(number_of_states=arguments.number_of_states,
