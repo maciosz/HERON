@@ -10,9 +10,11 @@
 The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 
+import string
 import logging
 import hmmlearn.mynumpy as np
 from scipy.special import logsumexp
+from scipy.stats import nbinom
 from sklearn import cluster
 from sklearn.utils import check_random_state
 
@@ -1001,20 +1003,49 @@ class GMMHMM(_BaseHMM):
 
 class NegativeBinomialHMM(_BaseHMM):
 
-    def __init__(self, n_components):
-        _BaseHMM.__init__(self, n_components)
+    def __init__(self, n_components,
+                 startprob_prior=1.0, transmat_prior=1.0,
+                 algorithm="viterbi", random_state=None,
+                 n_iter=10, tol=1e-2, verbose=False,
+                 params=string.ascii_letters,
+                 init_params=string.ascii_letters,
+                 p=1, r=1):
+        _BaseHMM.__init__(self, n_components,
+                          startprob_prior, transmat_prior,
+                          algorithm, random_state,
+                          n_iter, tol, verbose,
+                          params, init_params) 
+        self.p = p
+        self.r = r
 
     def _init(self, X, lengths=None):
         super(NegativeBinomialHMM, self)._init(X, lengths)
+        _, n_features = X.shape
+        if hasattr(self, 'n_features') and self.n_features != n_features:
+            raise ValueError('Unexpected number of dimensions, got %s but '
+                             'expected %s' % (n_features, self.n_features))
+        self.n_features = n_features
 
     def _check(self):
         super(NegativeBinomialHMM, self)._check()
 
     def _compute_log_likelihood(self, X):
-        pass
+        def _logpmf(X, r, p):
+            return nbinom.logpmf(X.astype('float64'), r.astype('float64'),
+                                 p.astype('float64')).astype('float128')
+        n_observations, n_features = X.shape
+        p, r = self.p_, self.r_
+        log_likelihood = np.ndarray((n_observations, self.n_components))
+        for observation in range(n_observations):
+            for state in range(self.n_components):
+                log_likelihood[observation, state] = \
+                    np.sum(_logpmf(X[observation, :], r[state, :], p[state, :]))
+        return log_likelihood
 
     def _generate_sample_from_state(self, state, random_state=None):
-        pass
+        return [nbinom(self.r_[state][feature],
+                       self.p_[state][feature]).rvs()
+                for feature in range(self.n_features)]
 
     def _initialize_sufficient_statistics(self):
         super(NegativeBinomialHMM, self)._initialize_sufficient_statistics()
