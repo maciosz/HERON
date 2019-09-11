@@ -4,8 +4,6 @@ from data import Data
 def test_multiple_chromosomes():
     data = Data()
     data.add_data_from_files(["simple_test_with_multiple_chromosomes.bedgraph"])
-    print data.chromosome_names
-    print data.chromosome_ends
     assert data.chromosome_names == ['chr1', 'chr2', 'chr3', 'chr4']
     assert data.chromosome_ends == [2300, 2900, 2500, 2300]
     assert data.numbers_of_windows == [23, 29, 25, 23]
@@ -50,8 +48,12 @@ def test_split():
 
 def test_bam_reading():
     # TODO: finish me
-    assert True
- 
+    # testing values, mean...
+    data = Data()
+    data.add_data_from_files(["test.bam"], resolution=100)
+    assert data.chromosome_names == ['chr21']
+    assert data.chromosome_ends == [46709983]
+    assert data.numbers_of_windows == [467100]
 
 """
 def test_peak_calling():
