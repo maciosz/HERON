@@ -35,7 +35,7 @@ class Data(object):
         """
         medians = []
         for line in self.matrix.T:
-            median = numpy.median([x <= threshold for x in line])
+            median = numpy.median([x for x in line if x <= threshold])
             medians.append(median)
         logging.debug("Medians: %s", str(medians))
         counter = 0
