@@ -1015,8 +1015,8 @@ class NegativeBinomialHMM(_BaseHMM):
                           algorithm, random_state,
                           n_iter, tol, verbose,
                           params, init_params) 
-        self.p = p
-        self.r = r
+        self.p_ = p
+        self.r_ = r
 
     def _init(self, X, lengths=None):
         super(NegativeBinomialHMM, self)._init(X, lengths)
@@ -1031,24 +1031,26 @@ class NegativeBinomialHMM(_BaseHMM):
 
     def _compute_log_likelihood(self, X):
         def _logpmf(X, r, p):
+            # jesli musze zmieniac tu typ na 64, to czy w ogole jest jakis zysk z uzywania 128?
             return nbinom.logpmf(X.astype('float64'), r.astype('float64'),
                                  p.astype('float64')).astype('float128')
         n_observations, n_features = X.shape
-        p, r = self.p_, self.r_
         log_likelihood = np.ndarray((n_observations, self.n_components))
         for observation in range(n_observations):
             for state in range(self.n_components):
                 log_likelihood[observation, state] = \
-                    np.sum(_logpmf(X[observation, :], r[state, :], p[state, :]))
+                    np.sum(_logpmf(X[observation, :],
+                                   self.r_[state, :], self.p_[state, :]))
         return log_likelihood
 
     def _generate_sample_from_state(self, state, random_state=None):
+        random_state = check_random_state(random_state)
         return [nbinom(self.r_[state][feature],
                        self.p_[state][feature]).rvs()
                 for feature in range(self.n_features)]
 
     def _initialize_sufficient_statistics(self):
-        super(NegativeBinomialHMM, self)._initialize_sufficient_statistics()
+        stats = super(NegativeBinomialHMM, self)._initialize_sufficient_statistics()
 
     def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):

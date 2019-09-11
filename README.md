@@ -27,8 +27,9 @@ possibly with
 -l - level of logging
 
 -d - distribution of emissions (Gauss / NB; defaults to NB)
+    (!Warning: NB currently doesn't work. Oops.)
 
--t - threshold; t promils of windows with highest values
+-t - threshold; `t` promils of windows with highest values
      will be excluded from training.
      They will be included in finding states step.
      Defaults to 0, meaning no thresholding.
@@ -38,6 +39,10 @@ possibly with
      By default it's 200.
 
 --dont-save - do not save one of the states as peaks
+
+--random-seed - Specify random seed. Can be used for reproducibility.
+    In current implemantation there is no randomness,
+    but I'm leaving it just in case.
 
 Initialising means options:
 
@@ -87,7 +92,5 @@ Assumes that bedgraphs
  and distribution is set to Negative Binomial,
  program will convert them to integers
  (we don't mind floats with Gauss).
- Can read bams, but do it much longer than bedgraphs.
 
-Tested on python 2.7. Won't work with python3.
-(Actually, it might. Worth checking.)
+Tested on python 3.6.
