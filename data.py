@@ -289,11 +289,11 @@ class Data(object):
         for chr_id, chromosome in enumerate(self.chromosome_names):
             pileup = bam.pileup(reference=chromosome)
             try:
-                first_read = pileup.next().pos
+                first_read = next(pileup).pos
             except StopIteration:
                 windows.extend([0] * self.numbers_of_windows[chr_id])
                 continue
-            current_window = first_read / resolution
+            current_window = int(first_read / resolution)
             # adding zeros if first read is not in the first window
             windows.extend([0] * (current_window))
             previous_window = current_window - 1
@@ -311,7 +311,7 @@ class Data(object):
                     if mean:
                         value = float(value) / resolution
                     windows.append(value)
-                    current_window = position.pos / resolution
+                    current_window = int(position.pos / resolution)
                     if current_window != previous_window + 1:
                         windows.extend([0] * (current_window - previous_window - 1))
                     start = current_window * resolution
