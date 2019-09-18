@@ -338,7 +338,11 @@ class Data(object):
             windows.extend([0] * (self.numbers_of_windows[chr_id] - current_window - 1))
             length = len(windows)
             prev_length = length
-        self.matrix = numpy.append(self.matrix, windows)
+        windows = numpy.array(windows)[:, numpy.newaxis]
+        if self.matrix.shape == (0,):
+            self.matrix = numpy.array(windows)
+        else:
+            self.matrix = numpy.append(self.matrix, windows, axis=1)
 
     def prepare_metadata_from_file(self, filename, resolution):
         """
