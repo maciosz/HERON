@@ -117,6 +117,11 @@ def main():
     #stderr_logger = logging.getLogger('STDERR')
     #stream_to_logger = StreamToLogger(stderr_logger, logging.ERROR)
     #sys.stderr = stream_to_logger
+
+    # this works, but error messages have additional newlines
+    sys.stdout.write = logging.debug
+    sys.stderr.write = logging.error
+
     logging.info("Command used: %s", " ".join(sys.argv))
     logging.info("Creating data structure...")
     model = Model(number_of_states=arguments.number_of_states,
