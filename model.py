@@ -324,10 +324,10 @@ class Model(object):
         #self.data.matrix = numpy.c_[self.data.matrix, states]
         self.data.add_column(states)
         logging.info("Number of iterations till convergence: %i", self.model.monitor_.iter)
-        if self.distribution == "NB":
-            if self.model.covars_le_means > 0:
-                logging.warning("Covars <= means %i times during fitting. No good.",
-                                self.model.covars_le_means)
+        #if self.distribution == "NB":
+        #    if self.model.covars_le_means > 0:
+        #        logging.warning("Covars <= means %i times during fitting. No good.",
+        #                        self.model.covars_le_means)
         #return states
 
     def prepair_data(self):

@@ -1036,7 +1036,6 @@ class NegativeBinomialHMM(_BaseHMM):
         if 'r' in self.init_params or not hasattr(self, "r_"):
             self.r_ = r
 
-
     def _estimate_means(self, X):
         """
         Estimate means with k-means.
@@ -1071,22 +1070,6 @@ class NegativeBinomialHMM(_BaseHMM):
                 cv, 'diag', self.n_components).copy()
         return covars
  
-    def _calculate_p_r(self, means, covars):
-        """
-        Calculate p and r parameters from means and covars estimations.
-        Current formula assume following notation:
-
-        p - probability of success
-        r - number of failures
-        X ~ NB(r, p) - number of successes before r failures occures
-
-        mean(X) = rp / (1-p)
-        var(X) = rp / (1-p)**2
-        """
-        p = (covars - means) / covars
-        r = means ** 2 / (covars - means)
-        return p, r
-
         """
         From GaussianHMM:
         if 'm' in self.init_params or not hasattr(self, "means_"):
@@ -1107,6 +1090,37 @@ class NegativeBinomialHMM(_BaseHMM):
                     cv, self.covariance_type, self.n_components).copy()
         """
 
+    def _calculate_p_r(self, means, covars):
+        """
+        Calculate p and r parameters from means and covars estimations.
+        Current formula assume following notation:
+
+        p - probability of success
+        r - number of failures
+        X ~ NB(r, p) - number of successes before r failures occures
+
+        mean(X) = rp / (1-p)
+        var(X) = rp / (1-p)**2
+        """
+        p = (covars - means) / covars
+        r = means ** 2 / (covars - means)
+        return p, r
+
+    def _calculate_means_covars(self, p, r):
+        """
+        Calculate means and covars from p and r EM estimations.
+        Current formula assume following notation:
+
+        p - probability of success
+        r - number of failures
+        X ~ NB(r, p) - number of successes before r failures occures
+
+        mean(X) = rp / (1-p)
+        var(X) = rp / (1-p)**2
+        """
+        means = r * p / (1 - p)
+        covars = r * p / (1 - p)**2
+        return means, covars
 
     def _check(self):
         super(NegativeBinomialHMM, self)._check()
@@ -1135,13 +1149,48 @@ class NegativeBinomialHMM(_BaseHMM):
 
     def _initialize_sufficient_statistics(self):
         stats = super(NegativeBinomialHMM, self)._initialize_sufficient_statistics()
+        return stats
 
     def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):
         super(NegativeBinomialHMM, self)._accumulate_sufficient_statistics(
                    stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
+        stats['X'] = X
 
     def _do_mstep(self, stats):
-        super(NegativeBinomialHMM, self)._do_mstep()
+        super(NegativeBinomialHMM, self)._do_mstep(stats)
         # update:
         #self.p_, self.r_, self.means_, self.covars_
+        self.p = self._update_p(stats)
+        self.r = self._update_r(stats)
+        self.means_, self.covars_ = self._calculate_means_covars(self.p_, self.r_)
+
+    def _update_p(self, stats):
+        """
+        ML estimation of p parameter.
+
+        Currently sketch implementation;
+        assumes that all states have the same p,
+        treats all X as one sample of the same distribution.
+        """
+        # TODO
+        X = stats['X']
+        n_samples = X.shape[0]
+        p_mle = np.sum(X, axis=0) / (n_samples * self.r_ + np.sum(X, axis=0))
+        if p_mle.shape != self.p_.shape:
+            raise ValueError('p MLE has different shape than p in previous iteration.'
+                             ' Check your MLE calculations.')
+        #p_mle = np.eye(self.p_.shape) * p_mle
+        logging.debug("p MLE:")
+        logging.debug(p_mle)
+        return p_mle
+
+    def _update_r(self, stats):
+        """
+        ML estimation of r parameter.
+        """
+        # TODO
+        r_mle = self.r_
+        logging.debug("r MLE:")
+        logging.debug(r_mle)
+        return r_mle

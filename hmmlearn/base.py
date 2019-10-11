@@ -695,3 +695,7 @@ class _BaseHMM(BaseEstimator):
             self.transmat_ = np.where(self.transmat_ == 0.0,
                                       self.transmat_, transmat_)
             normalize(self.transmat_, axis=1)
+        logging.debug("start probability:")
+        logging.debug(self.startprob_)
+        logging.debug("transition matrix:")
+        logging.debug(self.transmat_)
