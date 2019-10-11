@@ -1008,15 +1008,12 @@ class NegativeBinomialHMM(_BaseHMM):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params=string.ascii_letters,
-                 init_params=string.ascii_letters,
-                 p=1, r=1):
+                 init_params=string.ascii_letters):
         _BaseHMM.__init__(self, n_components,
                           startprob_prior, transmat_prior,
                           algorithm, random_state,
                           n_iter, tol, verbose,
                           params, init_params) 
-        self.p_ = p
-        self.r_ = r
 
     def _init(self, X, lengths=None):
         super(NegativeBinomialHMM, self)._init(X, lengths)
@@ -1025,9 +1022,96 @@ class NegativeBinomialHMM(_BaseHMM):
             raise ValueError('Unexpected number of dimensions, got %s but '
                              'expected %s' % (n_features, self.n_features))
         self.n_features = n_features
+        if any([letter in self.init_params for letter in ['m', 'c', 'p', 'r']]):
+            # estimate means, covars; calculate p, r
+            means = self._estimate_means(X)
+            covars = self._estimate_covars(X)
+            p, r = self._calculate_p_r(means, covars)
+        if 'm' in self.init_params or not hasattr(self, "means_"):
+            self.means_ = means
+        if 'c' in self.init_params or not hasattr(self, "covars_"):
+            self.covars_ = covars
+        if 'p' in self.init_params or not hasattr(self, "p_"):
+            self.p_ = p
+        if 'r' in self.init_params or not hasattr(self, "r_"):
+            self.r_ = r
+
+
+    def _estimate_means(self, X):
+        """
+        Estimate means with k-means.
+        Based on GaussianHMM.
+
+        I'm not sure if it's the best way,
+         maybe simple quantiles would be better?
+         But it's ready, so I'll go with it for now.
+        """
+        kmeans = cluster.KMeans(n_clusters=self.n_components,
+                                random_state=self.random_state)
+        kmeans.fit(X)
+        means = kmeans.cluster_centers_
+        means = np.sort(means, axis = 0)
+        return means
+
+    def _estimate_covars(self, X):
+        """
+        Estimate covars.
+        Based on GaussianHMM.
+        I'm not sure what covariance type is appropriate here,
+         so I went with diag.
+
+        min_covar is the default value for GaussianHMM self.min_vocar.
+        """
+        min_covar = 1e-3
+        cv = np.cov(X.T) + min_covar * np.eye(X.shape[1])
+        if not cv.shape:
+            cv.shape = (1, 1)
+        covars = \
+            _utils.distribute_covar_matrix_to_match_covariance_type(
+                cv, 'diag', self.n_components).copy()
+        return covars
+ 
+    def _calculate_p_r(self, means, covars):
+        """
+        Calculate p and r parameters from means and covars estimations.
+        Current formula assume following notation:
+
+        p - probability of success
+        r - number of failures
+        X ~ NB(r, p) - number of successes before r failures occures
+
+        mean(X) = rp / (1-p)
+        var(X) = rp / (1-p)**2
+        """
+        p = (covars - means) / covars
+        r = means ** 2 / (covars - means)
+        return p, r
+
+        """
+        From GaussianHMM:
+        if 'm' in self.init_params or not hasattr(self, "means_"):
+            kmeans = cluster.KMeans(n_clusters=self.n_components,
+                                    random_state=self.random_state)
+            kmeans.fit(X)
+            means = kmeans.cluster_centers_
+            means = np.sort(means, axis = 0)
+            self.means_ = means
+        logging.debug("Initial means:")
+        logging.debug(self.means_)
+        if 'c' in self.init_params or not hasattr(self, "covars_"):
+            cv = np.cov(X.T) + self.min_covar * np.eye(X.shape[1])
+            if not cv.shape:
+                cv.shape = (1, 1)
+            self._covars_ = \
+                _utils.distribute_covar_matrix_to_match_covariance_type(
+                    cv, self.covariance_type, self.n_components).copy()
+        """
+
 
     def _check(self):
         super(NegativeBinomialHMM, self)._check()
+        # maybe we could check here whether variance > mean?
+        # though I'm not sure if it can be checked a priori
 
     def _compute_log_likelihood(self, X):
         def _logpmf(X, r, p):
@@ -1059,3 +1143,5 @@ class NegativeBinomialHMM(_BaseHMM):
 
     def _do_mstep(self, stats):
         super(NegativeBinomialHMM, self)._do_mstep()
+        # update:
+        #self.p_, self.r_, self.means_, self.covars_
