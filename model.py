@@ -201,10 +201,10 @@ class Model(object):
         #print covars
         for sample in range(self.number_of_samples):
             group = order[sample]
-            #print "sample %d, group %d" % (sample, group)
+            #print("sample %d, group %d" % (sample, group))
             covariance = covariances[group][0, :]
-            #print "covariance:"
-            #print covariance
+            #print("covariance:")
+            #print(covariance)
             covariances[group] = numpy.delete(covariances[group], 0, 0)
             #print
             covars[:, sample, which[group]] = covariance
@@ -256,10 +256,10 @@ class Model(object):
         self.model.transmat_ = transmat
         #logging.debug(str(transmat))
 
-    def read_in_files(self, files, resolution):
+    def read_in_files(self, files, resolution=0):
         """
         Read in files given as a list of strings.
-        The data structure actually does all the work.
+        The data object actually does all the work.
         Resolution is needed only for reading bams;
         it's ignored when all the data are bedgraphs.
         """
@@ -302,6 +302,24 @@ class Model(object):
         self.prepair_data()
         self.model.fit(self.data_for_training.matrix,
                        lengths=self.data_for_training.numbers_of_windows)
+        self._reorder_states()
+
+    def _reorder_states(self):
+        order = self._get_order()
+        if numpy.any(order != list(range(self.number_of_states))):
+            self.model.means_ = self.model.means_[order, :]
+            self.model.covars_ = self.model.covars_[order, :]
+            self.model.startprob_ = self.model.startprob_[order]
+            self.model.transmat_ = self.model.transmat_[order, :][:, order]
+            if self.distribution == "NB":
+                self.model.p_ = self.model.p_[order, :]
+                self.model.r_ = self.model.r_[order, :]
+
+    def _get_order(self):
+        means = self.model.means_
+        order = means.argsort(axis=0)
+        order = numpy.sum(order, axis=1).argsort()
+        return order
 
     def predict_states(self):
         """

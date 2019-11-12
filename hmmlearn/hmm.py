@@ -1003,6 +1003,43 @@ class GMMHMM(_BaseHMM):
 
 class NegativeBinomialHMM(_BaseHMM):
 
+    """
+    Two possible notations:
+
+    #####
+    (I)
+
+    p - probability of success
+    r - number of failures
+    X ~ NB(r, p) - number of successes before r failures occures
+
+    mean(X) = rp / (1-p)
+    var(X) = rp / (1-p)**2
+
+    That's notation from wikipedia.
+
+    #####
+    (II)
+
+    p - probability of success
+    r - number of successes
+    X ~ NB(r, p) - number of failures before r successes occures
+
+    mean(X) = r(1-p) / p
+    var(X) = r(1-p) / p**2
+
+    That's notation used in scipy.stats.nbinom and R.
+
+    #####
+    
+    These notations can be transformed easily into each other by setting p := 1-p.
+
+    Current formulas assume notation (II).
+
+    If you plan on changing that,
+    find all methods with #NOTATION tag.
+    """
+
     def __init__(self, n_components,
                  startprob_prior=1.0, transmat_prior=1.0,
                  algorithm="viterbi", random_state=None,
@@ -1093,33 +1130,26 @@ class NegativeBinomialHMM(_BaseHMM):
     def _calculate_p_r(self, means, covars):
         """
         Calculate p and r parameters from means and covars estimations.
-        Current formula assume following notation:
 
-        p - probability of success
-        r - number of failures
-        X ~ NB(r, p) - number of successes before r failures occures
-
-        mean(X) = rp / (1-p)
-        var(X) = rp / (1-p)**2
+        #NOTATION
+        To see current notation go to class description.
         """
-        p = (covars - means) / covars
+        #p = (covars - means) / covars
+        p = means / covars
         r = means ** 2 / (covars - means)
         return p, r
 
     def _calculate_means_covars(self, p, r):
         """
         Calculate means and covars from p and r EM estimations.
-        Current formula assume following notation:
 
-        p - probability of success
-        r - number of failures
-        X ~ NB(r, p) - number of successes before r failures occures
-
-        mean(X) = rp / (1-p)
-        var(X) = rp / (1-p)**2
+        #NOTATION
+        To see current notation go to class description.
         """
-        means = r * p / (1 - p)
-        covars = r * p / (1 - p)**2
+        #means = r * p / (1 - p)
+        #covars = r * p / (1 - p)**2
+        means = r * (1-p) / p
+        covars = r * (1-p) / p**2
         return means, covars
 
     def _check(self):
@@ -1128,6 +1158,10 @@ class NegativeBinomialHMM(_BaseHMM):
         # though I'm not sure if it can be checked a priori
 
     def _compute_log_likelihood(self, X):
+        """
+        #NOTATION
+        To see current notation go to class description.
+        """
         def _logpmf(X, r, p):
             # jesli musze zmieniac tu typ na 64, to czy w ogole jest jakis zysk z uzywania 128?
             return nbinom.logpmf(X.astype('float64'), r.astype('float64'),
@@ -1142,6 +1176,10 @@ class NegativeBinomialHMM(_BaseHMM):
         return log_likelihood
 
     def _generate_sample_from_state(self, state, random_state=None):
+        """
+        #NOTATION
+        To see current notation go to class description.
+        """
         random_state = check_random_state(random_state)
         return [nbinom(self.r_[state][feature],
                        self.p_[state][feature]).rvs()
@@ -1149,13 +1187,15 @@ class NegativeBinomialHMM(_BaseHMM):
 
     def _initialize_sufficient_statistics(self):
         stats = super(NegativeBinomialHMM, self)._initialize_sufficient_statistics()
+        stats['X'] = np.ndarray((0, self.n_features))
         return stats
 
     def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):
         super(NegativeBinomialHMM, self)._accumulate_sufficient_statistics(
                    stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
-        stats['X'] = X
+        stats['X'] = np.append(stats['X'], X, axis=0)
+
 
     def _do_mstep(self, stats):
         super(NegativeBinomialHMM, self)._do_mstep(stats)
@@ -1172,25 +1212,38 @@ class NegativeBinomialHMM(_BaseHMM):
         Currently sketch implementation;
         assumes that all states have the same p,
         treats all X as one sample of the same distribution.
+
+        #NOTATION
+        To see current notation go to class description.
         """
         # TODO
         X = stats['X']
         n_samples = X.shape[0]
-        p_mle = np.sum(X, axis=0) / (n_samples * self.r_ + np.sum(X, axis=0))
+        X_sum = np.sum(X, axis=0)
+        #p_mle = X_sum / (n_samples * self.r_ + X_sum)
+        p_mle = n_samples * self.r_ / (n_samples * self.r_ + X_sum)
+        logging.debug("p MLE:")
+        logging.debug(p_mle)
         if p_mle.shape != self.p_.shape:
             raise ValueError('p MLE has different shape than p in previous iteration.'
                              ' Check your MLE calculations.')
-        #p_mle = np.eye(self.p_.shape) * p_mle
-        logging.debug("p MLE:")
-        logging.debug(p_mle)
         return p_mle
 
     def _update_r(self, stats):
         """
         ML estimation of r parameter.
+
+        Currently sketch implementation;
+        doesn't change r at all.
+
+        #NOTATION
+        To see current notation go to class description.
         """
         # TODO
         r_mle = self.r_
         logging.debug("r MLE:")
         logging.debug(r_mle)
+        if r_mle.shape != self.r_.shape:
+            raise ValueError('r MLE has different shape than r in previous iteration.'
+                             ' Check your MLE calculations.')
         return r_mle

@@ -122,6 +122,10 @@ def main():
     sys.stdout.write = logging.debug
     sys.stderr.write = logging.error
 
+    # To teoretycznie powinno zadzialac jesli dobrze rozumiem dokumentacje
+    # logging.captureWarnings(True)
+    # ale nie dziala
+
     logging.info("Command used: %s", " ".join(sys.argv))
     logging.info("Creating data structure...")
     model = Model(number_of_states=arguments.number_of_states,

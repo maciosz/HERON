@@ -34,15 +34,15 @@ def calculate_derivative(pstwa, dane, r, p):
     derivative = a - b + c
     """
     if np.any(r <= 0.1):
-        print "r mniejsze rowne 0.1 przy liczeniu pochodnej"
-        print "r:", r
-        #print "digamma(r_conc):", _digamma(r_conc)
-        #print "pstwa:", pstwa
-        print "p:", p
-        print "b:", b
-        print "derivative:", derivative
+        print("r mniejsze rowne 0.1 przy liczeniu pochodnej")
+        print("r:", r)
+        #print("digamma(r_conc):", _digamma(r_conc))
+        #print("pstwa:", pstwa)
+        print("p:", p)
+        print("b:", b)
+        print("derivative:", derivative)
     else:
-        print "allright"
+        print("allright")
     """
     return derivative
 
@@ -95,8 +95,8 @@ def update_r(r, derivative, delta, stop):
             r[i, j] += delta[i, j]
             if r[i, j] <= 0:
                 if derivative[i, j] < 0:
-                    #print "r bliskie zero, ale pochodna ujemna..."
-                    #print "obczaj: %f %f %f" % (r[i, j], derivative[i, j], delta[i, j])
+                    #print("r bliskie zero, ale pochodna ujemna...")
+                    #print("obczaj: %f %f %f" % (r[i, j], derivative[i, j], delta[i, j]))
                     stop[i, j] = True
                 r[i, j] = 0.1
                 delta[i, j] = 0
@@ -111,20 +111,20 @@ def find_r(r_initial, dane, pstwa, p, threshold=5e-2):
     stop = np.zeros(r.shape, dtype=bool)
     while r_not_found:
         derivative = calculate_derivative(pstwa, dane, copy.deepcopy(r), p)
-        #print derivative
+        #print(derivative)
         #r_test = np.repeat(r[0], r.shape[0])[:, np.newaxis]
         #derivative_test = calculate_derivative(pstwa, dane, r_test, p)
         #if derivative[0] != derivative_test[0]:
-        #    print "sa rozne..."
+        #    print("sa rozne...")
         if np.all(abs(derivative) < threshold + stop):
             r_not_found = False
             break
         r, delta, stop = update_r(copy.deepcopy(r), derivative, delta, stop)
         counter += 1
         #if counter % 10 == 0:
-        #    print "%i iterations" % counter
-        #    print derivative
-        #    print r
+        #    print("%i iterations" % counter)
+        #    print(derivative)
+        #    print(r)
         if counter == 2000:
             # jesli idzie tak dlugo to pewnie i tak cos jest nie tak.
             # to niech juz beda te estymacje ktore sa.
