@@ -1096,7 +1096,7 @@ class NegativeBinomialHMM(_BaseHMM):
         I'm not sure what covariance type is appropriate here,
          so I went with diag.
 
-        min_covar is the default value for GaussianHMM self.min_vocar.
+        min_covar is the default value for GaussianHMM self.min_covar.
         """
         min_covar = 1e-3
         cv = np.cov(X.T) + min_covar * np.eye(X.shape[1])
@@ -1127,25 +1127,44 @@ class NegativeBinomialHMM(_BaseHMM):
                     cv, self.covariance_type, self.n_components).copy()
         """
 
-    def _calculate_p_r(self, means, covars):
+    def _calculate_p_r(self, means=None, covars=None):
         """
         Calculate p and r parameters from means and covars estimations.
+
+        If covars < means, calculated p and r make no sense.
+        We need to correct it, so that p < 1 and r > 0.
+        If indeed covars < means for every state MLE cannot be obtained,
+        but it might be that it happened just in the initialisation step,
+        and after an iteration it won't happen.
+        So no need to raise alarm here, I guess.
 
         #NOTATION
         To see current notation go to class description.
         """
+        if means is None:
+            means = self.means_
+        if covars is None:
+            covars = self.covars_
         #p = (covars - means) / covars
         p = means / covars
         r = means ** 2 / (covars - means)
+        if np.any(p > 1):
+            p[p > 1] = 0.99
+        if np.any(r < 0):
+            r[r < 0] = 0.5
         return p, r
 
-    def _calculate_means_covars(self, p, r):
+    def _calculate_means_covars(self, p=None, r=None):
         """
         Calculate means and covars from p and r EM estimations.
 
         #NOTATION
         To see current notation go to class description.
         """
+        if p is None:
+            p = self.p_
+        if r is None:
+            r = self.r_
         #means = r * p / (1 - p)
         #covars = r * p / (1 - p)**2
         means = r * (1-p) / p
@@ -1187,23 +1206,59 @@ class NegativeBinomialHMM(_BaseHMM):
 
     def _initialize_sufficient_statistics(self):
         stats = super(NegativeBinomialHMM, self)._initialize_sufficient_statistics()
+        # observations
         stats['X'] = np.ndarray((0, self.n_features))
+        # sum_t posteriors * observations
+        # I leave name 'obs' for consistency with Gaussian
+        stats['obs'] = np.zeros((self.n_components, self.n_features))
+        # sum_t posteriors
+        # I leave name 'post' for consistency with Gaussian
+        stats['post'] = np.zeros(self.n_components)
+        # posteriors
+        stats['posteriors'] = np.ndarray((0, self.n_components))
+
+        #stats['obs**2'] = np.zeros((self.n_components, self.n_features))
+        #if self.covariance_type in ('tied', 'full'):
+        #    stats['obs*obs.T'] = np.zeros((self.n_components, self.n_features,
+        #                                   self.n_features))
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
+    def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):
         super(NegativeBinomialHMM, self)._accumulate_sufficient_statistics(
-                   stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
-        stats['X'] = np.append(stats['X'], X, axis=0)
-
+                   stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice)
+        stats['X'] = np.append(stats['X'], obs, axis=0)
+        stats['post'] += posteriors.sum(axis=0)
+        stats['obs'] += np.dot(posteriors.T, obs)
+        stats['posteriors'] = np.append(stats['posteriors'], posteriors, axis=0)
+        """
+        if 'c' in self.params:
+            if self.covariance_type in ('spherical', 'diag'):
+                stats['obs**2'] += np.dot(posteriors.T, obs ** 2)
+            elif self.covariance_type in ('tied', 'full'):
+                # posteriors: (nt, nc); obs: (nt, nf); obs: (nt, nf)
+                # -> (nc, nf, nf)
+                stats['obs*obs.T'] += np.einsum(
+                    'ij,ik,il->jkl', posteriors, obs, obs)
+        """
 
     def _do_mstep(self, stats):
+        logging.debug("Start of m step; p, r, means, covars:")
+        logging.debug(self.p_)
+        logging.debug(self.r_)
+        logging.debug(self.means_)
+        logging.debug(self.covars_)
         super(NegativeBinomialHMM, self)._do_mstep(stats)
         # update:
         #self.p_, self.r_, self.means_, self.covars_
-        self.p = self._update_p(stats)
-        self.r = self._update_r(stats)
-        self.means_, self.covars_ = self._calculate_means_covars(self.p_, self.r_)
+        self.p_ = self._update_p(stats)
+        self.r_ = self._update_r(stats)
+        self.means_, self.covars_ = self._calculate_means_covars()
+        logging.debug("End of m step; p, r, means, covars:")
+        logging.debug(self.p_)
+        logging.debug(self.r_)
+        logging.debug(self.means_)
+        logging.debug(self.covars_)
 
     def _update_p(self, stats):
         """
@@ -1215,18 +1270,41 @@ class NegativeBinomialHMM(_BaseHMM):
 
         #NOTATION
         To see current notation go to class description.
+
+        p_j = sum_t (posteriori_j,t * r_j) / sum_t posteriori_j_t(x_t + r_j)
         """
-        # TODO
-        X = stats['X']
-        n_samples = X.shape[0]
-        X_sum = np.sum(X, axis=0)
+        post_times_r = stats['post'][:, np.newaxis] * self.r_
+        #print(stats['post'].shape)
+        #print(self.r_.shape)
+        #print(stats['obs'].shape)
+        #print((stats['post']*self.r_).shape)
+        #print(post_times_r.shape)
+        p_mle = post_times_r / (stats['obs'] + post_times_r)
+        if np.any(np.isnan(p_mle)):
+            print("Warning: p MLE is nan")
+            if np.any(np.isnan(post_times_r)):
+                print("...specifically post_times_r")
+            if np.any(np.isnan(stats['obs'])):
+                print("...specifically stats['obs']")
+
+        if np.any(p_mle > 1):
+            print("Warning: your p MLE is bigger than 1")
+            p_mle[p_mle > 1] = 0.99
+        if np.any(p_mle < 0):
+            print("Warning: your p MLE is smaller than 0")
+            p_mle[p_mle < 0] = 0.01
+        #X = stats['X']
+        #n_samples = X.shape[0]
+        #X_sum = np.sum(X, axis=0)
         #p_mle = X_sum / (n_samples * self.r_ + X_sum)
-        p_mle = n_samples * self.r_ / (n_samples * self.r_ + X_sum)
+        #p_mle = n_samples * self.r_ / (n_samples * self.r_ + X_sum)
         logging.debug("p MLE:")
         logging.debug(p_mle)
         if p_mle.shape != self.p_.shape:
             raise ValueError('p MLE has different shape than p in previous iteration.'
-                             ' Check your MLE calculations.')
+                             ' Expected %s, got %s.'
+                             ' Check your MLE calculations.'
+                             % (str(self.p_.shape), str(p_mle.shape)))
         return p_mle
 
     def _update_r(self, stats):
@@ -1239,11 +1317,17 @@ class NegativeBinomialHMM(_BaseHMM):
         #NOTATION
         To see current notation go to class description.
         """
-        # TODO
         r_mle = self.r_
+        r_mle = hmmlearn.finding_r.find_r(self.r_, stats['X'], stats['posteriors'], self.p_)
+        if np.any(r_mle < 0):
+            print("Warning: your r MLE is smaller than 0")
+            r_mle[r_mle < 0] = 0.5
         logging.debug("r MLE:")
         logging.debug(r_mle)
         if r_mle.shape != self.r_.shape:
             raise ValueError('r MLE has different shape than r in previous iteration.'
-                             ' Check your MLE calculations.')
+                             ' Expected %s, got %s.'
+                             ' Check your MLE calculations.'
+                             % (str(self.r_.shape), str(r_mle.shape)))
+
         return r_mle

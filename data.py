@@ -223,7 +223,6 @@ class Data(object):
         """
         Add coverage data from single bedgraph file.
         """
-        logging.info("reading in file %s", filename)
         #self.matrix.append([float(line.strip().split()[-1]) for line in open(filename)])
         # aa czy tu nie moglabym zamiast float dac jakies self.type?
         # i zmieniac go w zaleznosci od distr
@@ -364,6 +363,7 @@ class Data(object):
         Add data from a single file.
         Guess the type basing on suffix.
         """
+        logging.info("reading in file %s", filename)
         if filename.endswith("bedgraph"):
             self.add_data_from_bedgraph(filename)
         elif filename.endswith("bam"):

@@ -30,7 +30,6 @@ class Model(object):
         self.number_of_states = number_of_states
         self.distribution = distribution
         self.model = self._create_HMM()
-        #self.model.means_ = numpy.array([[0], [4], [20]])
         self.probability = None
         self.number_of_samples = 0
 
@@ -101,7 +100,7 @@ class Model(object):
 
     def initialise_individual_means(self, levels):
         """
-        Initialise means for samples based on quanitles of values.
+        Initialise means for samples based on quantiles of values.
 
         levels - list of floats in [0, 1] range
 
@@ -152,12 +151,12 @@ class Model(object):
         levels - levels of quantiles to use as zero-state,
                  background and enrichment, respectively.
         """
+        number_of_groups = len(set(order))
+        template = self._generate_template_for_grouped_means(number_of_groups)
         n_samples = len(order)
         #self.model.init_params = self.model.init_params.replace("m", "")
         means = numpy.ones((self.number_of_states, n_samples))
         #template = numpy.array([[0, 0], [1, 1], [1, 2], [2, 1], [2, 2]])
-        number_of_groups = len(set(order))
-        template = self._generate_template_for_grouped_means(number_of_groups)
         quantiles = self.data.calculate_quantiles(levels)
         for state in range(self.number_of_states):
             for sample in range(n_samples):
@@ -182,7 +181,6 @@ class Model(object):
         order - a list of numbers (starting from zero)
                 representing a group for each sample.
         """
-
         covariances = {}
         which = {}
         for group in set(order):
@@ -222,6 +220,7 @@ class Model(object):
                             " For %d groups I can only deal with %d states."
                             " You wanted %d.",
                             number_of_groups, template.shape[0], self.number_of_states)
+            self.number_of_states = template.shape[0]
         return template
 
     def initialise_transition_matrix(self, n_peaks):
