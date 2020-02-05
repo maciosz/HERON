@@ -39,7 +39,7 @@ class Model(object):
             return hmm.GaussianHMM(self.number_of_states,
                                    covariance_type='full',
                                    #covariance_type='diag',
-                                   n_iter=1000, tol=0.00005,
+                                   n_iter=1000, tol=0.0001,
                                    random_state=random_state,
                                    #means_weight = 0.00001,
                                    #init_params = 'cts',
@@ -47,7 +47,7 @@ class Model(object):
         elif self.distribution == "NB":
             return hmm.NegativeBinomialHMM(self.number_of_states,
                                            n_iter=1000,
-                                           tol=0.00005,
+                                           tol=0.0001,
                                            random_state=random_state,
                                            verbose=True)
 
@@ -61,7 +61,7 @@ class Model(object):
         elif len(means) != self.number_of_states * self.number_of_samples:
             raise ValueError("Inproper length of initialised means;"
                              " should be either n_states or n_states * n_samples,"
-                             " in this casa either %d or %d * %d."
+                             " in this case either %d or %d * %d."
                              " Got %d" % (self.number_of_states,
                                           self.number_of_states,
                                           self.number_of_samples,
@@ -73,7 +73,7 @@ class Model(object):
         if means.shape != (self.number_of_states, self.number_of_samples):
             raise ValueError("Inproper shape of initialised means;"
                              " should be n_states * n_samples,"
-                             " in this casa %d * %d."
+                             " in this case %d * %d."
                              " Got %s" % (self.number_of_states,
                                           self.number_of_samples,
                                           str(means.shape)))
@@ -306,6 +306,10 @@ class Model(object):
     def _reorder_states(self):
         order = self._get_order()
         if numpy.any(order != list(range(self.number_of_states))):
+            print("reordering inside model.py")
+            print(self.model.means_)
+            print("order:")
+            print(order)
             self.model.means_ = self.model.means_[order, :]
             self.model.covars_ = self.model.covars_[order, :]
             self.model.startprob_ = self.model.startprob_[order]
@@ -313,11 +317,14 @@ class Model(object):
             if self.distribution == "NB":
                 self.model.p_ = self.model.p_[order, :]
                 self.model.r_ = self.model.r_[order, :]
+            print("reordered:")
+            print(self.model.means_)
+            print("***")
 
     def _get_order(self):
         means = self.model.means_
         order = means.argsort(axis=0)
-        order = numpy.sum(order, axis=1).argsort()
+        order = numpy.sum(order, axis=1).argsort().argsort()
         return order
 
     def predict_states(self):
