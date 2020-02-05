@@ -1063,11 +1063,11 @@ class NegativeBinomialHMM(_BaseHMM):
             # estimate means, covars; calculate p, r
             means = self._estimate_means(X)
             covars = self._estimate_covars(X)
-            p, r = self._calculate_p_r(means, covars)
         if 'm' in self.init_params or not hasattr(self, "means_"):
             self.means_ = means
         if 'c' in self.init_params or not hasattr(self, "covars_"):
             self.covars_ = covars
+        p, r = self._calculate_p_r(self.means_, self.covars_)
         if 'p' in self.init_params or not hasattr(self, "p_"):
             self.p_ = p
         if 'r' in self.init_params or not hasattr(self, "r_"):
@@ -1151,7 +1151,7 @@ class NegativeBinomialHMM(_BaseHMM):
         if np.any(p > 1):
             p[p > 1] = 0.99
         if np.any(r < 0):
-            r[r < 0] = 0.5
+            r[r < 0] = 0.01
         return p, r
 
     def _calculate_means_covars(self, p=None, r=None):
@@ -1183,7 +1183,7 @@ class NegativeBinomialHMM(_BaseHMM):
         """
         def _logpmf(X, r, p):
             # jesli musze zmieniac tu typ na 64, to czy w ogole jest jakis zysk z uzywania 128?
-            return nbinom.logpmf(X.astype('float64'), r.astype('float64'),
+            return nbinom.logpmf(X.astype('int'), r.astype('float64'),
                                  p.astype('float64')).astype('float128')
         n_observations, n_features = X.shape
         log_likelihood = np.ndarray((n_observations, self.n_components))
