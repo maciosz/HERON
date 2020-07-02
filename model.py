@@ -37,17 +37,17 @@ class Model(object):
         random_state = numpy.random.RandomState(self.random_seed)
         if self.distribution == "Gauss":
             return hmm.GaussianHMM(self.number_of_states,
-                                   covariance_type='full',
-                                   #covariance_type='diag',
-                                   n_iter=1000, tol=0.0001,
+                                   #covariance_type='full',
+                                   covariance_type='diag',
+                                   n_iter=1000, tol=0.01,
                                    random_state=random_state,
                                    #means_weight = 0.00001,
                                    #init_params = 'cts',
                                    verbose=True)
         elif self.distribution == "NB":
             return hmm.NegativeBinomialHMM(self.number_of_states,
-                                           n_iter=1000,
-                                           tol=0.0001,
+                                           n_iter=10000,
+                                           tol=0.01,
                                            random_state=random_state,
                                            verbose=True)
 
@@ -306,10 +306,6 @@ class Model(object):
     def _reorder_states(self):
         order = self._get_order()
         if numpy.any(order != list(range(self.number_of_states))):
-            print("reordering inside model.py")
-            print(self.model.means_)
-            print("order:")
-            print(order)
             self.model.means_ = self.model.means_[order, :]
             self.model.covars_ = self.model.covars_[order, :]
             self.model.startprob_ = self.model.startprob_[order]
@@ -317,9 +313,9 @@ class Model(object):
             if self.distribution == "NB":
                 self.model.p_ = self.model.p_[order, :]
                 self.model.r_ = self.model.r_[order, :]
-            print("reordered:")
-            print(self.model.means_)
-            print("***")
+            #print("reordered:")
+            #print(self.model.means_)
+            #print("***")
 
     def _get_order(self):
         means = self.model.means_

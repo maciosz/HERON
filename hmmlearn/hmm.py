@@ -1132,7 +1132,7 @@ class NegativeBinomialHMM(_BaseHMM):
         Calculate p and r parameters from means and covars estimations.
 
         If covars < means, calculated p and r make no sense.
-        We need to correct it, so that p < 1 and r > 0.
+        We need to correct it, so that 0 < p < 1 and r > 0.
         If indeed covars < means for every state MLE cannot be obtained,
         but it might be that it happened just in the initialisation step,
         and after an iteration it won't happen.
@@ -1150,8 +1150,10 @@ class NegativeBinomialHMM(_BaseHMM):
         r = means ** 2 / (covars - means)
         if np.any(p > 1):
             p[p > 1] = 0.99
-        if np.any(r < 0):
-            r[r < 0] = 0.01
+        if np.any(p <= 0):
+            p[p <= 0] = 0.000001
+        if np.any(r <= 0):
+            r[r <= 0] = 0.001
         return p, r
 
     def _calculate_means_covars(self, p=None, r=None):
@@ -1329,5 +1331,4 @@ class NegativeBinomialHMM(_BaseHMM):
                              ' Expected %s, got %s.'
                              ' Check your MLE calculations.'
                              % (str(self.r_.shape), str(r_mle.shape)))
-
         return r_mle

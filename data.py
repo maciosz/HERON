@@ -408,6 +408,8 @@ class Data(object):
         """
         Calculate desired quantiles for every sample,
         excluding zero values.
+
+        (Why excluding zeros?)
         """
         #quantiles = numpy.quantile(self.matrix, levels, axis=0)
         n_samples = self.matrix.shape[1]

@@ -27,7 +27,6 @@ possibly with
 -l - level of logging
 
 -d - distribution of emissions (Gauss / NB; defaults to NB)
-    (!Warning: NB currently doesn't work. Oops.)
 
 -t - threshold; `t` promils of windows with highest values
      will be excluded from training.

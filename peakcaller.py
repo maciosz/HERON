@@ -85,7 +85,8 @@ def parse_arguments():
     parser.add_argument('-q', '--quantiles', nargs='+', type=float, default=[0, 0.5, 0.99],
                         help=
                         'What quantiles should I use as no-signal, background and enrichment?'
-                        ' Or as any other states, if you want more than 3.')
+                        ' Or as any other states, if you want more than 3.'
+                        ' Defaults to 0,0.5,0.99.')
                         #' I will always start from value zero anyway.')
     parser.add_argument('-c', '--covars', action='store_true',
                         help=

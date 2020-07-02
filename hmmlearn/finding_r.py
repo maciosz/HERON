@@ -16,11 +16,8 @@ def calculate_derivative(posteriors, data, r, p):
     n_comp, n_var = r.shape
     n_obs, _ = data.shape
 
-    """
     derivative = np.zeros(r.shape)
 
-    # TODO
-    # zmienic na operacje na macierzach, petla pewnie niepotrzebnie wydluza
     for state in range(n_comp):
         r_j, p_j = r[state], p[state]
         posteriors_j = posteriors[:, state][:, np.newaxis]
@@ -34,10 +31,11 @@ def calculate_derivative(posteriors, data, r, p):
         #print(in_brackets.shape)
         derivative[state] = np.sum(posteriors_j * in_brackets, axis=0)
 
-    print("derivative:")
-    print(derivative)
+    #print("derivative:")
+    #print(derivative)
     return derivative
-    """ 
+
+    # it's the same, just different implementation
     n_comp, n_var = r.shape
     n_obs, _ = data.shape
     desired_shape = (n_comp, n_obs, n_var)
@@ -53,7 +51,7 @@ def calculate_derivative(posteriors, data, r, p):
     derivative = np.sum(product, axis=1)
     return derivative
 
-
+    # another implementation
     r_conc = np.concatenate([r] * n_obs, axis=0)
     r_conc = r_conc.reshape(n_obs, n_comp, n_var)
     X_repeat = np.repeat(data, n_comp, axis=0)
@@ -68,29 +66,10 @@ def calculate_derivative(posteriors, data, r, p):
     b = b.reshape(n_comp, n_var)
     p_conc = np.concatenate([p] * n_obs, axis=0)
     p_conc = p_conc.reshape(n_obs, n_comp, n_var)
-    c = np.sum(pstwa_repeat * np.log(1 - p_conc), axis=0)
-    #c = np.sum(pstwa_repeat * np.log(p_conc), axis=0)
+    c = np.sum(pstwa_repeat * np.log(p_conc), axis=0)
     c = c.reshape(n_comp, n_var)
     derivative = a - b + c
-
-    print("old derivative:")
-    print(derivative)
-    print("new derivative:")
-    print(new_derivative)
-    """
-    if np.any(r <= 0.1):
-        print("r mniejsze rowne 0.1 przy liczeniu pochodnej")
-        print("r:", r)
-        #print("digamma(r_conc):", _digamma(r_conc))
-        #print("pstwa:", pstwa)
-        print("p:", p)
-        print("b:", b)
-        print("derivative:", derivative)
-    else:
-        print("allright")
-    """
     return derivative
-    #return new_derivative
 
 def update_r(r, derivative, delta, stop):
     # mozna by jakos sprytniej skakac
@@ -144,7 +123,7 @@ def update_r(r, derivative, delta, stop):
                     #print("r bliskie zero, ale pochodna ujemna...")
                     #print("obczaj: %f %f %f" % (r[i, j], derivative[i, j], delta[i, j]))
                     stop[i, j] = True
-                r[i, j] = 0.1
+                r[i, j] = 0.0001
                 delta[i, j] = 0
     return r, delta, stop
 
@@ -169,15 +148,15 @@ def find_r(r_initial, dane, pstwa, p, threshold=5e-2):
             print(derivative)
             break
         if np.all((abs(derivative) < threshold) + stop):
-            print("smaller, look:")
-            print(derivative)
-            print("**")
+            #print("smaller, look:")
+            #print(derivative)
+            #print("**")
             r_not_found = False
             break
-        else:
-            print("not smaller. Look:")
-            print(derivative)
-            print("**")
+        #else:
+        #    print("not smaller. Look:")
+        #    print(derivative)
+        #    print("**")
         stop[abs(derivative) < threshold] = True
         r, delta, stop = update_r(copy.deepcopy(r), derivative, delta, stop)
         counter += 1
@@ -189,7 +168,7 @@ def find_r(r_initial, dane, pstwa, p, threshold=5e-2):
             # jesli idzie tak dlugo to pewnie i tak cos jest nie tak.
             # to niech juz beda te estymacje ktore sa.
             break
-    print("r estimated:")
-    print(r)
-    print("***")
+    #print("r estimated:")
+    #print(r)
+    #print("***")
     return r
