@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import copy
+import logging
 
 #from scipy.stats import nbinom
 from scipy.special import digamma
@@ -21,14 +22,7 @@ def calculate_derivative(posteriors, data, r, p):
     for state in range(n_comp):
         r_j, p_j = r[state], p[state]
         posteriors_j = posteriors[:, state][:, np.newaxis]
-        #print("shapes of r_j, p_j, posteriors_j, data")
-        #print(r_j.shape)
-        #print(p_j.shape)
-        #print(posteriors_j.shape)
-        #print(data.shape)
         in_brackets = _digamma(data + r_j) - _digamma(r_j) + np.log(p_j)
-        #print("shape of in_brackets")
-        #print(in_brackets.shape)
         derivative[state] = np.sum(posteriors_j * in_brackets, axis=0)
 
     #print("derivative:")
@@ -120,6 +114,7 @@ def update_r(r, derivative, delta, stop):
             r[i, j] += delta[i, j]
             if r[i, j] <= 0:
                 if derivative[i, j] < 0:
+                    logging.warning("r mle < 0, derivative < 0")
                     #print("r bliskie zero, ale pochodna ujemna...")
                     #print("obczaj: %f %f %f" % (r[i, j], derivative[i, j], delta[i, j]))
                     stop[i, j] = True
@@ -127,7 +122,7 @@ def update_r(r, derivative, delta, stop):
                 delta[i, j] = 0
     return r, delta, stop
 
-def find_r(r_initial, dane, pstwa, p, threshold=5e-2):
+def find_r(r_initial, dane, pstwa, p, threshold=1e-3):
     r = r_initial.copy()
     r_not_found = True
     counter = 0
@@ -136,10 +131,6 @@ def find_r(r_initial, dane, pstwa, p, threshold=5e-2):
     while r_not_found:
         derivative = calculate_derivative(pstwa, dane, copy.deepcopy(r), p)
         #print(derivative)
-        #r_test = np.repeat(r[0], r.shape[0])[:, np.newaxis]
-        #derivative_test = calculate_derivative(pstwa, dane, r_test, p)
-        #if derivative[0] != derivative_test[0]:
-        #    print("sa rozne...")
         if np.any(np.isnan(derivative)):
             print("Derivative is nan, stop this madness")
             print("That's the r, p and derivative:")
@@ -148,15 +139,8 @@ def find_r(r_initial, dane, pstwa, p, threshold=5e-2):
             print(derivative)
             break
         if np.all((abs(derivative) < threshold) + stop):
-            #print("smaller, look:")
-            #print(derivative)
-            #print("**")
             r_not_found = False
             break
-        #else:
-        #    print("not smaller. Look:")
-        #    print(derivative)
-        #    print("**")
         stop[abs(derivative) < threshold] = True
         r, delta, stop = update_r(copy.deepcopy(r), derivative, delta, stop)
         counter += 1
