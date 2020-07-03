@@ -1051,6 +1051,8 @@ class NegativeBinomialHMM(_BaseHMM):
                           algorithm, random_state,
                           n_iter, tol, verbose,
                           params, init_params) 
+        self._update_r_ = True
+        self._update_p_ = False
 
     def _init(self, X, lengths=None):
         super(NegativeBinomialHMM, self)._init(X, lengths)
@@ -1253,8 +1255,14 @@ class NegativeBinomialHMM(_BaseHMM):
         super(NegativeBinomialHMM, self)._do_mstep(stats)
         # update:
         #self.p_, self.r_, self.means_, self.covars_
-        self.p_ = self._update_p(stats)
-        self.r_ = self._update_r(stats)
+        if self._update_p_:
+            self.p_ = self._update_p(stats)
+            self._update_p_ = False
+            self._update_r_ = True
+        elif self._update_r_:
+            self.r_ = self._update_r(stats)
+            self._update_p_ = True
+            self._update_r_ = False
         self.means_, self.covars_ = self._calculate_means_covars()
         logging.debug("End of m step; p, r, means, covars:")
         logging.debug(self.p_)
