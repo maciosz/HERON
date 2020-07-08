@@ -1,5 +1,5 @@
 #!/usr/bin/python
-
+import copy
 import logging
 import warnings
 import random
@@ -37,8 +37,8 @@ class Model(object):
         random_state = numpy.random.RandomState(self.random_seed)
         if self.distribution == "Gauss":
             return hmm.GaussianHMM(self.number_of_states,
-                                   #covariance_type='full',
-                                   covariance_type='diag',
+                                   covariance_type='full',
+                                   #covariance_type='diag',
                                    n_iter=1000, tol=0.01,
                                    random_state=random_state,
                                    #means_weight = 0.00001,
@@ -123,11 +123,9 @@ class Model(object):
         if any(numpy.array(levels) > 1) or any(numpy.array(levels) < 0):
             raise ValueError("Quantile levels should be between 0 and 1 (inclusive).")
         n_samples = self.number_of_samples
-        #self.model.init_params = self.model.init_params.replace("m", "")
         means = numpy.ones((self.number_of_states, n_samples))
-        #template = numpy.array(range(len(levels) + 1))
         template = numpy.array(range(len(levels)))
-        quantiles = self.data.calculate_quantiles(levels)
+        quantiles = self.data_for_training.calculate_quantiles(levels)
         for state in range(self.number_of_states):
             for sample in range(n_samples):
                 mean_class = template[state]
@@ -137,9 +135,7 @@ class Model(object):
                 #    mean = quantiles[mean_class - 1, sample]
                 mean = quantiles[mean_class, sample]
                 means[state, sample] = mean
-        #print means
         self._set_means(means)
-        #self.model.means_ = means
 
     def initialise_grouped_means(self, order, levels):
         """
@@ -154,10 +150,8 @@ class Model(object):
         number_of_groups = len(set(order))
         template = self._generate_template_for_grouped_means(number_of_groups)
         n_samples = len(order)
-        #self.model.init_params = self.model.init_params.replace("m", "")
         means = numpy.ones((self.number_of_states, n_samples))
-        #template = numpy.array([[0, 0], [1, 1], [1, 2], [2, 1], [2, 2]])
-        quantiles = self.data.calculate_quantiles(levels)
+        quantiles = self.data_for_training.calculate_quantiles(levels)
         for state in range(self.number_of_states):
             for sample in range(n_samples):
                 group = order[sample]
@@ -170,7 +164,6 @@ class Model(object):
                     mean = quantiles[1, sample]
                 means[state, sample] = mean
         self._set_means(means)
-        #self.model.means_ = means
 
     def initialise_grouped_covars(self, order):
         """
@@ -269,12 +262,15 @@ class Model(object):
         self.number_of_samples = len(files)
         logging.debug("Number of files: %d", self.number_of_samples)
         self.data.add_data_from_files(files, resolution, mean)
+        self.data_for_training = copy.deepcopy(self.data)
 
     def filter_data(self, threshold):
         """
         Filter the data above fixed threshold.
         Currently replaces the values with median value.
         See data.Data.filter_data for details.
+
+        It's not used anymore, right?
         """
         self.data.filter_data(threshold)
 
@@ -297,7 +293,6 @@ class Model(object):
         basing on the data, using EM approach.
         """
         logging.debug("Data for training shape: %s", str(self.data_for_training.matrix.shape))
-        # to sie dzieje i tu i w peakcallerze, zdecyduj sie
         self.prepair_data()
         self.model.fit(self.data_for_training.matrix,
                        lengths=self.data_for_training.numbers_of_windows)

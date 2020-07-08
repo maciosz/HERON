@@ -135,15 +135,14 @@ def main():
     logging.debug("Random seed: %d", model.random_seed)
     logging.info("Reading in data...")
     model.read_in_files(arguments.infiles, resolution=arguments.resolution)
-    #if arguments.threshold != 0:
-    #    logging.info("Filtering data (removing outliers)")
-    #    model.filter_data(arguments.threshold)
     logging.debug("Window size: %i", model.data.window_size)
     logging.debug("Chromosome names: %s", str(model.data.chromosome_names))
     logging.debug("Chromosome ends: %s", str(model.data.chromosome_ends))
-    #model.write_matrix_to_file(open(arguments.output_prefix + "matrix", "w"))
-    #logging.info("Data ready to analyse. Finding peaks")
     logging.info("All files read in.")
+    if arguments.threshold != 0:
+        logging.info("Preparing data for fitting.")
+        logging.info("Filtering data...")
+        model.filter_training_data(arguments.threshold)
     if arguments.groups:
         logging.debug("I will initialise grouped means")
         model.initialise_grouped_means(arguments.groups, arguments.quantiles)
@@ -151,18 +150,10 @@ def main():
             logging.debug("I will initialise grouped covars")
             model.initialise_grouped_covars(arguments.groups)
     elif arguments.means:
-        logging.info("Initialising means...")
+        logging.info("Initialising given means...")
         model.initialise_constant_means(arguments.means)
     else:
         model.initialise_individual_means(arguments.quantiles)
-    model.data_for_training = copy.deepcopy(model.data)
-    if arguments.threshold != 0:
-        logging.info("Preparing data for fitting.")
-        logging.info("Filtering data...")
-        model.filter_training_data(arguments.threshold)
-    # to prepair jest ni z gruszki ni z wiatraka
-    # trzeba by pomyslec nad innym flowem tego wszystkiego
-    model.prepair_data()
     logging.info("Fitting model...")
     model.fit_HMM()
     logging.info("Predicting states...")
