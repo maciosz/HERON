@@ -92,9 +92,9 @@ def update_r(r, derivative, delta, stop):
                 continue
             if delta[i, j] == 0:
                 if derivative[i, j] < 0:
-                    delta[i, j] = r[i, j] * -0.3
+                    delta[i, j] = r[i, j] * -0.5
                 elif derivative[i, j] > 0:
-                    delta[i, j] = r[i, j] * 10 + 5
+                    delta[i, j] = r[i, j]
                 else:
                     print("cos nie tak, pewnie nan")
             elif delta[i, j] < 0:
@@ -111,12 +111,12 @@ def update_r(r, derivative, delta, stop):
                     pass
                 else:
                     print("cos nie tak, pewnie nan")
+            if r[i, j] + delta[i, j] <= 0:
+                delta[i, j] = -0.5 * r[i, j]
             r[i, j] += delta[i, j]
             if r[i, j] <= 0:
                 if derivative[i, j] < 0:
                     logging.warning("r mle < 0, derivative < 0")
-                    #print("r bliskie zero, ale pochodna ujemna...")
-                    #print("obczaj: %f %f %f" % (r[i, j], derivative[i, j], delta[i, j]))
                     stop[i, j] = True
                 r[i, j] = 0.0001
                 delta[i, j] = 0

@@ -46,7 +46,7 @@ class Model(object):
                                    verbose=True)
         elif self.distribution == "NB":
             return hmm.NegativeBinomialHMM(self.number_of_states,
-                                           n_iter=10000,
+                                           n_iter=1000,
                                            tol=0.01,
                                            random_state=random_state,
                                            verbose=True)

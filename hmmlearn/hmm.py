@@ -1274,10 +1274,6 @@ class NegativeBinomialHMM(_BaseHMM):
         """
         ML estimation of p parameter.
 
-        Currently sketch implementation;
-        assumes that all states have the same p,
-        treats all X as one sample of the same distribution.
-
         #NOTATION
         To see current notation go to class description.
 
@@ -1320,9 +1316,6 @@ class NegativeBinomialHMM(_BaseHMM):
     def _update_r(self, stats):
         """
         ML estimation of r parameter.
-
-        Currently sketch implementation;
-        doesn't change r at all.
 
         #NOTATION
         To see current notation go to class description.
