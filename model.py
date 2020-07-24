@@ -39,7 +39,7 @@ class Model(object):
             return hmm.GaussianHMM(self.number_of_states,
                                    covariance_type='full',
                                    #covariance_type='diag',
-                                   n_iter=1000, tol=0.01,
+                                   n_iter=1000, tol=0.1,
                                    random_state=random_state,
                                    #means_weight = 0.00001,
                                    #init_params = 'cts',
@@ -47,7 +47,7 @@ class Model(object):
         elif self.distribution == "NB":
             return hmm.NegativeBinomialHMM(self.number_of_states,
                                            n_iter=1000,
-                                           tol=0.01,
+                                           tol=0.1,
                                            random_state=random_state,
                                            verbose=True)
 
