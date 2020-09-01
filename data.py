@@ -7,7 +7,7 @@ import collections
 import numpy
 import pysam
 
-class Data(object):
+class Data():
     """
     Object for reading, storing and writing data
     from bams, coverages and intervals.
@@ -283,8 +283,7 @@ class Data(object):
         resolution = self.window_size
         bam = pysam.AlignmentFile(filename)
         windows = []
-        counter = 0
-        length, prev_length = 0, 0
+        #length, prev_length = 0, 0
         for chr_id, chromosome in enumerate(self.chromosome_names):
             pileup = bam.pileup(reference=chromosome)
             try:
@@ -318,7 +317,7 @@ class Data(object):
                     values = [position.n]
                 else:
                     print("cos nie tak")
-                    print(pos.pos)
+                    print(position.pos)
                     print(start, end)
                     print(current_window, previous_window)
                     print(values)
@@ -335,8 +334,8 @@ class Data(object):
                 value = float(value) / final_window_length
             windows.append(value)
             windows.extend([0] * (self.numbers_of_windows[chr_id] - current_window - 1))
-            length = len(windows)
-            prev_length = length
+            #length = len(windows)
+            #prev_length = length
         windows = numpy.array(windows)[:, numpy.newaxis]
         if self.matrix.shape == (0,):
             self.matrix = numpy.array(windows)

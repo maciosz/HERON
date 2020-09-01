@@ -200,7 +200,7 @@ class GaussianHMM(_BaseHMM):
                                     random_state=self.random_state)
             kmeans.fit(X)
             means = kmeans.cluster_centers_
-            means = np.sort(means, axis = 0)
+            means = np.sort(means, axis=0)
             self.means_ = means
         logging.debug("Initial means:")
         logging.debug(self.means_)
@@ -234,23 +234,23 @@ class GaussianHMM(_BaseHMM):
                                            self.n_features))
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
+    def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):
         super(GaussianHMM, self)._accumulate_sufficient_statistics(
-            stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice)
+            stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
 
         if 'm' in self.params or 'c' in self.params:
             stats['post'] += posteriors.sum(axis=0)
-            stats['obs'] += np.dot(posteriors.T, obs)
+            stats['obs'] += np.dot(posteriors.T, X)
 
         if 'c' in self.params:
             if self.covariance_type in ('spherical', 'diag'):
-                stats['obs**2'] += np.dot(posteriors.T, obs ** 2)
+                stats['obs**2'] += np.dot(posteriors.T, X ** 2)
             elif self.covariance_type in ('tied', 'full'):
                 # posteriors: (nt, nc); obs: (nt, nf); obs: (nt, nf)
                 # -> (nc, nf, nf)
                 stats['obs*obs.T'] += np.einsum(
-                    'ij,ik,il->jkl', posteriors, obs, obs)
+                    'ij,ik,il->jkl', posteriors, X, X)
 
     def _do_mstep(self, stats):
         super(GaussianHMM, self)._do_mstep(stats)
@@ -291,7 +291,7 @@ class GaussianHMM(_BaseHMM):
                         (1, self._covars_.shape[1]))
             elif self.covariance_type in ('tied', 'full'):
                 cv_num = np.empty((self.n_components, self.n_features,
-                                  self.n_features))
+                                   self.n_features))
                 for c in range(self.n_components):
                     obsmean = np.outer(stats['obs'][c], self.means_[c])
 
@@ -463,9 +463,9 @@ class MultinomialHMM(_BaseHMM):
         Multinomial distribution, while ``[0, 0, 3, 5, 10]`` is not.
         """
         symbols = np.concatenate(X)
-        if (len(symbols) == 1                                # not enough data
-            or not np.issubdtype(symbols.dtype, np.integer)  # not an integer
-            or (symbols < 0).any()):                         # not positive
+        if (len(symbols) == 1                                    # not enough data
+                or not np.issubdtype(symbols.dtype, np.integer)  # not an integer
+                or (symbols < 0).any()):                         # not positive
             return False
         u = np.unique(symbols)
         return u[0] == 0 and u[-1] == len(u) - 1
@@ -1031,7 +1031,7 @@ class NegativeBinomialHMM(_BaseHMM):
     That's notation used in scipy.stats.nbinom and R.
 
     #####
-    
+
     These notations can be transformed easily into each other by setting p := 1-p.
 
     Current formulas assume notation (II).
@@ -1050,7 +1050,7 @@ class NegativeBinomialHMM(_BaseHMM):
                           startprob_prior, transmat_prior,
                           algorithm, random_state,
                           n_iter, tol, verbose,
-                          params, init_params) 
+                          params, init_params)
         self._update_r_ = True
         self._update_p_ = False
 
@@ -1088,7 +1088,7 @@ class NegativeBinomialHMM(_BaseHMM):
                                 random_state=self.random_state)
         kmeans.fit(X)
         means = kmeans.cluster_centers_
-        means = np.sort(means, axis = 0)
+        means = np.sort(means, axis=0)
         return means
 
     def _estimate_covars(self, X):
@@ -1108,7 +1108,7 @@ class NegativeBinomialHMM(_BaseHMM):
             _utils.distribute_covar_matrix_to_match_covariance_type(
                 cv, 'diag', self.n_components).copy()
         return covars
- 
+
         """
         From GaussianHMM:
         if 'm' in self.init_params or not hasattr(self, "means_"):
@@ -1227,13 +1227,13 @@ class NegativeBinomialHMM(_BaseHMM):
         #                                   self.n_features))
         return stats
 
-    def _accumulate_sufficient_statistics(self, stats, obs, framelogprob,
+    def _accumulate_sufficient_statistics(self, stats, X, framelogprob,
                                           posteriors, fwdlattice, bwdlattice):
         super(NegativeBinomialHMM, self)._accumulate_sufficient_statistics(
-                   stats, obs, framelogprob, posteriors, fwdlattice, bwdlattice)
-        stats['X'] = np.append(stats['X'], obs, axis=0)
+            stats, X, framelogprob, posteriors, fwdlattice, bwdlattice)
+        stats['X'] = np.append(stats['X'], X, axis=0)
         stats['post'] += posteriors.sum(axis=0)
-        stats['obs'] += np.dot(posteriors.T, obs)
+        stats['obs'] += np.dot(posteriors.T, X)
         stats['posteriors'] = np.append(stats['posteriors'], posteriors, axis=0)
         """
         if 'c' in self.params:

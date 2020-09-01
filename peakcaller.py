@@ -1,12 +1,11 @@
 #!/usr/bin/env python
 
 import sys
-import copy
 import logging
 import argparse
 from model import Model
 
-class StreamToLogger(object):
+class StreamToLogger():
     """
     Fake file-like stream object that redirects writes to a logger instance.
     source:

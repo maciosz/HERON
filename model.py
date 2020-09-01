@@ -11,7 +11,7 @@ from data import Data, save_intervals_as_bed
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
 
-class Model(object):
+class Model():
 
     def __init__(self, number_of_states, distribution, random_seed=None):
         """
@@ -36,20 +36,21 @@ class Model(object):
     def _create_HMM(self):
         random_state = numpy.random.RandomState(self.random_seed)
         if self.distribution == "Gauss":
-            return hmm.GaussianHMM(self.number_of_states,
-                                   covariance_type='full',
-                                   #covariance_type='diag',
-                                   n_iter=1000, tol=0.1,
-                                   random_state=random_state,
-                                   #means_weight = 0.00001,
-                                   #init_params = 'cts',
-                                   verbose=True)
+            model = hmm.GaussianHMM(self.number_of_states,
+                                    covariance_type='full',
+                                    #covariance_type='diag',
+                                    n_iter=1000, tol=0.1,
+                                    random_state=random_state,
+                                    #means_weight = 0.00001,
+                                    #init_params = 'cts',
+                                    verbose=True)
         elif self.distribution == "NB":
-            return hmm.NegativeBinomialHMM(self.number_of_states,
-                                           n_iter=1000,
-                                           tol=0.1,
-                                           random_state=random_state,
-                                           verbose=True)
+            model = hmm.NegativeBinomialHMM(self.number_of_states,
+                                            n_iter=1000,
+                                            tol=0.1,
+                                            random_state=random_state,
+                                            verbose=True)
+        return model
 
     def initialise_constant_means(self, means):
         """

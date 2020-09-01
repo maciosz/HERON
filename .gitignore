@@ -125,3 +125,10 @@ simulations/
 simulations_debug/
 test_tmp
 tmp.py
+gauss_covariance_testing/
+gauss_decreasing_logprob_ATACseq/
+kolejny_test_z_logprob/
+macsy_tsv_tmp
+notatki
+why_so_slow/
+
