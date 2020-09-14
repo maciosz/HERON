@@ -303,7 +303,12 @@ class Model():
         order = self._get_order()
         if numpy.any(order != list(range(self.number_of_states))):
             self.model.means_ = self.model.means_[order, :]
-            self.model.covars_ = self.model.covars_[order, :]
+            # TODO warto to nizej jakos inaczej zrobic
+            # np w NB tez dac atrybut _covars_ oprocz covars_
+            if self.distribution == "Gauss":
+                self.model.covars_ = self.model._covars_[order, :]
+            elif self.distribution == "NB":
+                self.model.covars_ = self.model.covars_[order, :]
             self.model.startprob_ = self.model.startprob_[order]
             self.model.transmat_ = self.model.transmat_[order, :][:, order]
             if self.distribution == "NB":

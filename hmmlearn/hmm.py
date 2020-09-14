@@ -1016,6 +1016,9 @@ class NegativeBinomialHMM(_BaseHMM):
     mean(X) = rp / (1-p)
     var(X) = rp / (1-p)**2
 
+    p = (var - mean) / var
+    r = mean**2 / (var - mean)
+
     That's notation from wikipedia.
 
     #####
@@ -1027,6 +1030,9 @@ class NegativeBinomialHMM(_BaseHMM):
 
     mean(X) = r(1-p) / p
     var(X) = r(1-p) / p**2
+
+    p = mean / var
+    r = mean**2 / (var - mean)
 
     That's notation used in scipy.stats.nbinom and R.
 
