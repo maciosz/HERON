@@ -5,6 +5,7 @@ import warnings
 import random
 import itertools
 import numpy
+from collections import Counter
 from hmmlearn import hmm
 from data import Data, save_intervals_as_bed
 
@@ -460,3 +461,108 @@ class Model():
                 output_file.write(str(j))
                 output_file.write("\t")
             output_file.write("\n")
+
+    def which_state_is_peaks(self):
+        """
+        Check which state represents peaks and returns its index.
+        If it's not the last state, log a warning.
+        It uses outside function because it was easier to implement the warning that way.
+        """
+        means = self.model.means_
+        peaks = which_state_is_peaks(means)
+        if peaks != (self.number_of_states - 1):
+            logging.warning("Peak-state is not the last state. Beware.")
+        return peaks
+
+def which_state_is_peaks(means):
+    """
+    Check which state represents peaks and returns its index.
+
+    Details:
+
+    Check which states seems to represent peaks, basing on estimated means.
+    Usually it would be state that has the highest mean in all samples.
+    However it may happen that such state doesn't exist,
+    e.g. sample 1 has maximum in state 1, and sample 2 and 3 has maxima in state 2.
+    In this case we choose state that has more maxima (2 in the example).
+    If such state doesn't exist either, we choose this state from the potential peak-states
+    that has the higher average mean, i.e. mean averaged over samples.
+    If we have for example means like this (samples in columns, states in rows):
+
+    2 0 8
+    7 2 2
+    1 6 0
+
+    we would choose the second row, because 7+2+2/3 is the highest average mean.
+    If we have a draw in this case too, we choose the state for which the maximum is higher.
+    E.g. for means like that:
+
+    3 0 8
+    7 2 2
+    0 9 0
+
+    we choose the first row, because 8 is the highest from the considered maxima.
+    Notice that we don't choose the third row, even though 9 > 8,
+    because average mean in this row is lower that in rows 1. and 2.
+
+    Finally, if all these criteria don't give conclusive peak-state,
+    we just choose randomly from all the potential candidates.
+    It is highly improbable that it will ever happen, though.
+    """
+    max_values_for_each_var = means.max(axis=0)
+    which_states_have_max_value = numpy.where(means == max_values_for_each_var)[0]
+    if len(set(which_states_have_max_value)) == 1:
+        # Easy, we have one winner.
+        # All the variables have maximum in this state.
+        return which_states_have_max_value[0]
+    # Variables have maxima in various states.
+    # We'll see if one state has the most of them.
+    logging.warning("Choosing peak state seems ambigous."
+                    " There is no state with mean highest among all samples.")
+    counter = Counter(list(which_states_have_max_value))
+    max_occurences = max(counter.values())
+    which_states_have_max_occurences = numpy.where(numpy.array(list(counter.values())) == max_occurences)[0]
+    which_states_have_max_occurences = which_states_have_max_value[which_states_have_max_occurences]
+    if len(which_states_have_max_occurences) == 1:
+        # One state has maximum in more variables than any other.
+        logging.warning("I'm choosing the one that has maximum"
+                        " in more samples than any other.")
+        return which_states_have_max_occurences[0]
+    # We have a draw.
+    # We'll see which state among the candidates has the highest mean,
+    # averaged over variables.
+    logging.warning("And there is no state with mean highest among more samples"
+                    " than any other state.")
+    average_means_of_states = means.mean(axis=1)
+    average_means_of_states_of_candidates = average_means_of_states[which_states_have_max_occurences]
+    max_average_mean_of_state_of_candidates = average_means_of_states_of_candidates.max()
+    which_states_have_highest_average_mean = numpy.where(average_means_of_states_of_candidates == max_average_mean_of_state_of_candidates)[0]
+    which_states_have_highest_average_mean = which_states_have_max_occurences[which_states_have_highest_average_mean]
+    if len(which_states_have_highest_average_mean) == 1:
+        logging.warning("From the states with highest mean in most samples,"
+                         " I'm choosing the one with the highest average mean"
+                         " over the samples.")
+        # We have one winner among candidates;
+        # it has the highest averaged mean.
+        return which_states_have_highest_average_mean[0]
+    # We have a draw, again.
+    # We'll see if one of the candidates has the highest single mean.
+    logging.warning("Not even one with highest mean averaged over the samples. Tricky data!")
+    max_values_for_each_state = means.max(axis=1)
+    highest_means_for_selected = max_values_for_each_state[which_states_have_highest_average_mean]
+    which_states_have_highest_single_mean = numpy.where(highest_means_for_selected == highest_means_for_selected.max())[0]
+    which_states_have_highest_single_mean = which_states_have_highest_average_mean[which_states_have_highest_single_mean]
+    if len(which_states_have_highest_single_mean) == 1:
+        # We have one winner;
+        # one of the candidates has the highest mean for single variable.
+        logging.warning("I've chosen the one with the highest mean for single variable.")
+        return which_states_have_highest_single_mean[0]
+    # Everything failed. I will just return random candidate.
+    logging.warning("...or one with the highest mean for single variable. I give up."
+                    " I will choose randomly from the candidates."
+                    " Please review estimated means and other parameters"
+                    " and feel free to change my decision."
+                    " All the states are saved anyway.")
+    return numpy.random.choice(which_states_have_highest_single_mean)
+
+

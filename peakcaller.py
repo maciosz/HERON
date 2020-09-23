@@ -3,13 +3,22 @@
 import sys
 import logging
 import argparse
+import numpy as np
 from model import Model
+
+DISTRIBUTIONS = {'NB': ['n', 'nb', 'negativebinomial', 'negative_binomial', 'negative-binomial'],
+                 'Gauss': ['g', 'gauss', 'normal']}
+DISTRIBUTIONS_REVERSE = {}
+for key, values in DISTRIBUTIONS.items():
+    for value in values:
+        DISTRIBUTIONS_REVERSE[value] = key
 
 class StreamToLogger():
     """
     Fake file-like stream object that redirects writes to a logger instance.
     source:
     https://www.electricmonk.nl/log/2011/08/14/redirect-stdout-and-stderr-to-a-logger-in-python/
+    I'm not using it currently, right?
     """
     def __init__(self, logger, log_level=logging.INFO):
         self.logger = logger
@@ -34,17 +43,14 @@ def parse_arguments():
                         help='prefix to output files')
     parser.add_argument('-d', dest='distribution',
                         action='store', type=str, default='NB',
-                        help='distribution of emissions; "Gauss" or "NB" (default)')
+                        help='distribution of emissions; "Gauss" or "NB" (default);'
+                             ' you can also use "g", "G"'
+                             ' or "n", "N", "negativebinomial".')
     parser.add_argument('-t', dest='threshold',
                         action='store', type=float, default=0,
                         help='t promils of windows with highest value'
                         ' will not be used to train the model.'
                         ' 0 means no threshold.')
-    #parser.add_argument('-t', dest='threshold',
-    #                    action='store', type=int, default=0,
-    #                    help='windows above this value will be considered outliers'
-    #                    ' and reduced to the median value;'
-    #                    ' 0 (default) means no threshold')
     parser.add_argument('-l', dest='logging',
                         action='store', type=str, default='i',
                         help=
@@ -52,9 +58,10 @@ def parse_arguments():
                         'w (warning), i (info), d (debug). '
                         'Defaults to i.')
     parser.add_argument('-r', dest='resolution',
-                        action='store', type=int, default=200,
+                        action='store', type=int, default=600,
                         help=
-                        'Resolution to use. Ignored when infiles are bedgraphs.')
+                        'Resolution to use. Ignored when infiles are bedgraphs.'
+                        'Defaults to 600.')
     parser.add_argument('--dont-save', dest='save_peaks',
                         action='store_false',
                         help=
@@ -81,17 +88,39 @@ def parse_arguments():
                         ' For example, -g 0 1 1 0 0 means that 1., 4. and 5. sample'
                         ' are from one group and 2. and 3. are from another.'
                         ' You can specify more than two groups.')
-    parser.add_argument('-q', '--quantiles', nargs='+', type=float, default=[0, 0.5, 0.99],
+    parser.add_argument('-q', '--quantiles', nargs='+', type=float, default=None,
                         help=
                         'What quantiles should I use as no-signal, background and enrichment?'
-                        ' Or as any other states, if you want more than 3.'
-                        ' Defaults to 0,0.5,0.99.')
+                        ' Or as any other states, if you don\'t want 3 states.'
+                        ' Defaults to 0,0.5,0.99 for 3 states'
+                        ' or evenly spaced between 0 and 1 for any other number.')
                         #' I will always start from value zero anyway.')
     parser.add_argument('-c', '--covars', action='store_true',
                         help=
                         'Should covars be initialised in a grouped way?'
                         ' Ignored when -g is not provided.')
-    return parser.parse_args()
+    args = parser.parse_args()
+    args = check_args(args)
+    return args
+
+def check_args(args):
+    distribution = args.distribution.lower()
+    distribution = DISTRIBUTIONS_REVERSE.get(distribution)
+    if distribution is None:
+        sys.exit("Unknown distribution: %s."
+                 " Supported distributions are: %s."
+                 " You can use following names: %s;"
+                 " upper or lower case." %
+                 (args.distribution,
+                  str(list(DISTRIBUTIONS.keys())),
+                  str(list(DISTRIBUTIONS_REVERSE.keys()))))
+    args.distribution = distribution
+    if args.quantiles is None:
+        if args.number_of_states == 3:
+            args.quantiles = [0, 0.5, 0.99]
+        else:
+            args.quantiles = np.linspace(0, 1, args.number_of_states)
+    return args
 
 
 def main():
@@ -153,10 +182,14 @@ def main():
         model.initialise_constant_means(arguments.means)
     else:
         model.initialise_individual_means(arguments.quantiles)
+    #logging.debug("Quantiles:")
+    #logging.debug(arguments.quantiles)
     logging.info("Fitting model...")
     model.fit_HMM()
     logging.info("Predicting states...")
     model.predict_states()
+    peaks = model.which_state_is_peaks()
+    logging.info("Peaks: state %d" % peaks)
     model.save_states_to_seperate_files(arguments.output_prefix)
     model.write_stats_to_file(arguments.output_prefix)
     #if arguments.save_peaks:

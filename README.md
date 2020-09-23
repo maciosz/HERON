@@ -18,6 +18,10 @@ No need to install. Just make sure this version of hmmlearn
 
 ./peakcaller.py -i sample1.bedgraph sample2.bedgraph ...
 
+or
+
+./peakcaller.py -i sample1.bam sample2.bam ...
+
 possibly with
 
 -s - number of states (default 3)
@@ -35,7 +39,7 @@ possibly with
 
 -r - resolution, that is the desired window size.
      Used only for reading bams, has no effect on bedgraphs.
-     By default it's 200.
+     By default it's 600.
 
 --dont-save - do not save one of the states as peaks
 

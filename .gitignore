@@ -133,3 +133,15 @@ notatki
 why_so_slow/
 linki
 gauss_logprob/
+gauss_testing/
+generate_and_test_gauss.py
+generate_gauss.py
+likelihood_test/
+release_200923.zip
+3.bedgraph
+TMP/
+proba_means.py
+proba_means2.py
+usunto_state_3.bed
+usunto_state_4.bed
+

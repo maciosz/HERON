@@ -6,6 +6,7 @@ import logging
 import collections
 import numpy
 import pysam
+from collections import Counter
 
 class Data():
     """
@@ -252,11 +253,6 @@ class Data():
                 self.numbers_of_windows[-1] += 1
             previous_end, previous_chromosome = end, chromosome
         self.chromosome_ends.append(int(end))
-
-    #def which_state_is_peaks(self):
-    # TODO: check whether mean is the highest among all samples
-    #   return self.model.means_.mean(axis=1).argmax()
-
 
     def prepare_metadata_from_bam(self, filename, resolution):
         """
