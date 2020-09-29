@@ -4,8 +4,8 @@ import logging
 import warnings
 import random
 import itertools
-import numpy
 from collections import Counter
+import numpy
 from hmmlearn import hmm
 from data import Data, save_intervals_as_bed
 
@@ -216,6 +216,7 @@ class Model():
                             " You wanted %d.",
                             number_of_groups, template.shape[0], self.number_of_states)
             self.number_of_states = template.shape[0]
+            self.model.n_components = self.number_of_states
         return template
 
     def initialise_transition_matrix(self, n_peaks):
@@ -354,19 +355,19 @@ class Model():
 
     def prepair_data(self):
         """
-        Changes data matrix to numpy array and transposes it.
         For NB distribution converts floats to ints.
+        For Gauss does nothing.
 
-        TODO: jakos to inaczej zrobic, no co to za kopiowanie kodu.
-
-        Uhm... teraz tylko zmienia floaty na inty, tak?
+        It used to change data matrix to numpy array and transpose it,
+        but now it's not needed.
+        I left it, though. Maybe it will be needed later.
         """
         if self.distribution == "NB":
             self.data.convert_floats_to_ints()
             self.data_for_training.convert_floats_to_ints()
         #self.data.matrix = numpy.array(self.data.matrix).transpose()
         #self.data_for_training.matrix = numpy.array(self.data.matrix).transpose()
-        logging.debug("Wymiary macierzy: %s", str(self.data.matrix.shape))
+        logging.debug("Matrix dimensions: %s", str(self.data.matrix.shape))
 
     def save_states_to_seperate_files(self, output_prefix):
         """
@@ -491,7 +492,7 @@ def which_state_is_peaks(means):
 
     2 0 8
     7 2 2
-    1 6 0
+    1 9 0
 
     we would choose the second row, because 7+2+2/3 is the highest average mean.
     If we have a draw in this case too, we choose the state for which the maximum is higher.
@@ -521,7 +522,8 @@ def which_state_is_peaks(means):
                     " There is no state with mean highest among all samples.")
     counter = Counter(list(which_states_have_max_value))
     max_occurences = max(counter.values())
-    which_states_have_max_occurences = numpy.where(numpy.array(list(counter.values())) == max_occurences)[0]
+    which_states_have_max_occurences = numpy.where(numpy.array(list(counter.values())) == \
+                                                   max_occurences)[0]
     which_states_have_max_occurences = which_states_have_max_value[which_states_have_max_occurences]
     if len(which_states_have_max_occurences) == 1:
         # One state has maximum in more variables than any other.
@@ -536,12 +538,13 @@ def which_state_is_peaks(means):
     average_means_of_states = means.mean(axis=1)
     average_means_of_states_of_candidates = average_means_of_states[which_states_have_max_occurences]
     max_average_mean_of_state_of_candidates = average_means_of_states_of_candidates.max()
-    which_states_have_highest_average_mean = numpy.where(average_means_of_states_of_candidates == max_average_mean_of_state_of_candidates)[0]
+    which_states_have_highest_average_mean = numpy.where(average_means_of_states_of_candidates == \
+                                                         max_average_mean_of_state_of_candidates)[0]
     which_states_have_highest_average_mean = which_states_have_max_occurences[which_states_have_highest_average_mean]
     if len(which_states_have_highest_average_mean) == 1:
         logging.warning("From the states with highest mean in most samples,"
-                         " I'm choosing the one with the highest average mean"
-                         " over the samples.")
+                        " I'm choosing the one with the highest average mean"
+                        " over the samples.")
         # We have one winner among candidates;
         # it has the highest averaged mean.
         return which_states_have_highest_average_mean[0]
@@ -550,7 +553,8 @@ def which_state_is_peaks(means):
     logging.warning("Not even one with highest mean averaged over the samples. Tricky data!")
     max_values_for_each_state = means.max(axis=1)
     highest_means_for_selected = max_values_for_each_state[which_states_have_highest_average_mean]
-    which_states_have_highest_single_mean = numpy.where(highest_means_for_selected == highest_means_for_selected.max())[0]
+    which_states_have_highest_single_mean = numpy.where(highest_means_for_selected == \
+                                            highest_means_for_selected.max())[0]
     which_states_have_highest_single_mean = which_states_have_highest_average_mean[which_states_have_highest_single_mean]
     if len(which_states_have_highest_single_mean) == 1:
         # We have one winner;
@@ -564,5 +568,3 @@ def which_state_is_peaks(means):
                     " and feel free to change my decision."
                     " All the states are saved anyway.")
     return numpy.random.choice(which_states_have_highest_single_mean)
-
-

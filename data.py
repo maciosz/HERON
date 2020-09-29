@@ -6,7 +6,6 @@ import logging
 import collections
 import numpy
 import pysam
-from collections import Counter
 
 class Data():
     """
@@ -417,6 +416,9 @@ class Data():
         return quantiles
 
     def add_column(self, column):
+        """
+        Add given column to self.matrix.
+        """
         self.matrix = numpy.c_[self.matrix, column]
 
 def _check_condition(condition, interval):

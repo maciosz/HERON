@@ -211,6 +211,8 @@ class GaussianHMM(_BaseHMM):
             self._covars_ = \
                 _utils.distribute_covar_matrix_to_match_covariance_type(
                     cv, self.covariance_type, self.n_components).copy()
+        logging.debug("Initial debug:")
+        logging.debug(self.covars_)
 
     def _compute_log_likelihood(self, X):
         lmnd = log_multivariate_normal_density(
@@ -273,6 +275,8 @@ class GaussianHMM(_BaseHMM):
 
 
         if 'c' in self.params:
+            logging.debug("stare covars:")
+            logging.debug(self.covars_)
             covars_prior = self.covars_prior
             covars_weight = self.covars_weight
             meandiff = self.means_ - means_prior
@@ -308,6 +312,8 @@ class GaussianHMM(_BaseHMM):
                 elif self.covariance_type == 'full':
                     self._covars_ = ((covars_prior + cv_num) /
                                      (cvweight + stats['post'][:, None, None]))
+            logging.debug("stare covars:")
+            logging.debug(self.covars_)
 
 
 class MultinomialHMM(_BaseHMM):
@@ -1298,6 +1304,14 @@ class NegativeBinomialHMM(_BaseHMM):
                 print("...specifically post_times_r")
             if np.any(np.isnan(stats['obs'])):
                 print("...specifically stats['obs']")
+            if np.any((stats['obs'] + post_times_r) == 0):
+                print("stats obs + post_times_r ma zera:")
+                print(stats['obs'] + post_times_r)
+                print("stats obs, post times r osobno:")
+                print(stats['obs'])
+                print(post_times_r)
+                print("stats post:")
+                print(stats['post'])
 
         if np.any(p_mle > 1):
             print("Warning: your p MLE is bigger than 1")

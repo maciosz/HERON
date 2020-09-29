@@ -175,8 +175,12 @@ def main():
         logging.debug("I will initialise grouped means")
         model.initialise_grouped_means(arguments.groups, arguments.quantiles)
         if arguments.covars:
-            logging.debug("I will initialise grouped covars")
-            model.initialise_grouped_covars(arguments.groups)
+            if arguments.distribution == "NB":
+                logging.info("Grouped covars not supported for NB."
+                             " I will ignore -c option.")
+            else:
+                logging.debug("I will initialise grouped covars")
+                model.initialise_grouped_covars(arguments.groups)
     elif arguments.means:
         logging.info("Initialising given means...")
         model.initialise_constant_means(arguments.means)
