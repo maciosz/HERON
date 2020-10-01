@@ -10,6 +10,7 @@
 The :mod:`hmmlearn.hmm` module implements hidden Markov models.
 """
 
+import sys
 import string
 import logging
 import hmmlearn.mynumpy as np
@@ -211,7 +212,7 @@ class GaussianHMM(_BaseHMM):
             self._covars_ = \
                 _utils.distribute_covar_matrix_to_match_covariance_type(
                     cv, self.covariance_type, self.n_components).copy()
-        logging.debug("Initial debug:")
+        logging.debug("Initial covars:")
         logging.debug(self.covars_)
 
     def _compute_log_likelihood(self, X):
@@ -266,16 +267,16 @@ class GaussianHMM(_BaseHMM):
         # p. 443 - 445
         denom = stats['post'][:, np.newaxis]
         if 'm' in self.params:
-            logging.debug("stare means:")
+            logging.debug("old means:")
             logging.debug(self.means_)
             self.means_ = ((means_weight * means_prior + stats['obs'])
                            / (means_weight + denom))
-            logging.debug("nowe means:")
+            logging.debug("new means:")
             logging.debug(self.means_)
 
 
         if 'c' in self.params:
-            logging.debug("stare covars:")
+            logging.debug("old covars:")
             logging.debug(self.covars_)
             covars_prior = self.covars_prior
             covars_weight = self.covars_weight
@@ -312,7 +313,7 @@ class GaussianHMM(_BaseHMM):
                 elif self.covariance_type == 'full':
                     self._covars_ = ((covars_prior + cv_num) /
                                      (cvweight + stats['post'][:, None, None]))
-            logging.debug("stare covars:")
+            logging.debug("new covars:")
             logging.debug(self.covars_)
 
 
@@ -1267,6 +1268,32 @@ class NegativeBinomialHMM(_BaseHMM):
         super(NegativeBinomialHMM, self)._do_mstep(stats)
         # update:
         #self.p_, self.r_, self.means_, self.covars_
+        if np.any((stats['obs']) == 0):
+            raise RuntimeError("stats['post'] has zeros."
+                               " It means for at least one state the following is true:"
+                               " for every window, there is zero posterior probability"
+                               " of this window being in this state."
+                               " It might be needed to lower number of states."
+                               " Maybe different initial means will help."
+                               " No reason to continue now,"
+                               " from here only errors await."
+                               " For debugging / replicating purposes"
+                               " have current values for some parameters:"
+                               " means:\n%s\n covars:\n%s\n p:\n%s\n r:\n%s\n"
+                               " stats['obs'] (posteriors.T * X):\n%s\n"
+                               " stats['post'] (sum posteriors):\n%s\n"
+                               " Aaand we finish here. Bye."
+                               % (str(self.means_),
+                                  str(self.covars_),
+                                  str(self.p_),
+                                  str(self.r_),
+                                  str(stats['obs']),
+                                  str(stats['post'])))
+        if np.any((stats['obs']) == 0):
+            logging.warning("stats['obs'] has zeros."
+                            "Probably sth will go wrong now."
+                            " Try different initial means"
+                            " or lower number of states.")
         if self._update_p_:
             self.p_ = self._update_p(stats)
             self._update_p_ = False

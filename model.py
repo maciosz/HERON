@@ -14,13 +14,17 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 
 class Model():
 
-    def __init__(self, number_of_states, distribution, random_seed=None):
+    def __init__(self, number_of_states, distribution,
+                 random_seed=None, covariance_type='full'):
         """
         number_of_states - int; how many states the HMM should have
         distribution - str; either "NB" for negative binomial or "Gauss"
         random_seed - int, optional
                       random_seed to be used in random operations;
                       useful for reproducing results
+                      (though currently there is no randomness)
+        covariance_type - applicable only to Gaussian distribution;
+                          supported values: diag, full, tied, spherical
         """
         if not random_seed:
             self.random_seed = random.randint(0, 2**32 - 1)
@@ -30,16 +34,15 @@ class Model():
         self.data_for_training = Data()
         self.number_of_states = number_of_states
         self.distribution = distribution
-        self.model = self._create_HMM()
+        self.model = self._create_HMM(covariance_type)
         self.probability = None
         self.number_of_samples = 0
 
-    def _create_HMM(self):
+    def _create_HMM(self, covariance_type='full'):
         random_state = numpy.random.RandomState(self.random_seed)
         if self.distribution == "Gauss":
             model = hmm.GaussianHMM(self.number_of_states,
-                                    covariance_type='full',
-                                    #covariance_type='diag',
+                                    covariance_type=covariance_type,
                                     n_iter=1000, tol=0.1,
                                     random_state=random_state,
                                     #means_weight = 0.00001,
@@ -487,7 +490,7 @@ def which_state_is_peaks(means):
     e.g. sample 1 has maximum in state 1, and sample 2 and 3 has maxima in state 2.
     In this case we choose state that has more maxima (2 in the example).
     If such state doesn't exist either, we choose this state from the potential peak-states
-    that has the higher average mean, i.e. mean averaged over samples.
+    that has the highest average mean, i.e. mean averaged over samples.
     If we have for example means like this (samples in columns, states in rows):
 
     2 0 8
@@ -503,11 +506,11 @@ def which_state_is_peaks(means):
     0 9 0
 
     we choose the first row, because 8 is the highest from the considered maxima.
-    Notice that we don't choose the third row, even though 9 > 8,
+    Note that we don't choose the third row, even though 9 > 8,
     because average mean in this row is lower that in rows 1. and 2.
 
     Finally, if all these criteria don't give conclusive peak-state,
-    we just choose randomly from all the potential candidates.
+    we just choose randomly from all the potential candidates, with a warning.
     It is highly improbable that it will ever happen, though.
     """
     max_values_for_each_var = means.max(axis=0)

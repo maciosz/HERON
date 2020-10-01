@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 
-import sys
 import math
 import logging
 import collections
@@ -348,9 +347,8 @@ class Data():
         elif filename.endswith("bam"):
             self.prepare_metadata_from_bam(filename, resolution)
         else:
-            logging.error("Unknown file type: %s",
-                          filename.split(".")[-1])
-            sys.exit()
+            raise ValueError("Unknown file type: %s" %
+                             filename.split(".")[-1])
 
     def add_data_from_file(self, filename, mean):
         """
@@ -363,9 +361,8 @@ class Data():
         elif filename.endswith("bam"):
             self.add_data_from_bam(filename, mean)
         else:
-            logging.error("Unknown file type: %s",
-                          filename.split(".")[1])
-            sys.exit()
+            raise ValueError("Unknown file type: %s" %
+                             filename.split(".")[1])
 
     def add_data_from_files(self, filenames, resolution=100, mean=True):
         """

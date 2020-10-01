@@ -7,11 +7,12 @@ import numpy as np
 from model import Model
 
 DISTRIBUTIONS = {'NB': ['n', 'nb', 'negativebinomial', 'negative_binomial', 'negative-binomial'],
-                 'Gauss': ['g', 'gauss', 'normal']}
+                 'Gauss': ['g', 'gauss', 'normal', 'gaussian']}
 DISTRIBUTIONS_REVERSE = {}
 for key, values in DISTRIBUTIONS.items():
     for value in values:
         DISTRIBUTIONS_REVERSE[value] = key
+COVARIANCE_TYPES = ['full', 'diag', 'spherical', 'tied']
 
 class StreamToLogger():
     """
@@ -28,7 +29,6 @@ class StreamToLogger():
     def write(self, buf):
         for line in buf.rstrip().splitlines():
             self.logger.log(self.log_level, line.rstrip())
-
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
@@ -95,10 +95,24 @@ def parse_arguments():
                         ' Defaults to 0,0.5,0.99 for 3 states'
                         ' or evenly spaced between 0 and 1 for any other number.')
                         #' I will always start from value zero anyway.')
-    parser.add_argument('-c', '--covars', action='store_true',
+    parser.add_argument('-c', '--covariance-type', default=None,
                         help=
-                        'Should covars be initialised in a grouped way?'
-                        ' Ignored when -g is not provided.')
+                        'Type of covariance matrix.'
+                        ' Ignored when distribution is not Gaussian.'
+                        ' Could be one of:'
+                        ' diag (diagonal), full, spherical, tied, or grouped.'
+                        ' "grouped" makes sense only if "-g" argument is provided;'
+                        ' it means covariance matrix will be full inside groups'
+                        ' and filled with zeros between groups.'
+                        ' Note that unlike other options,'
+                        'grouped option applies only to the initial covariance matrix,'
+                        ' it can end up as full one.'
+                        ' Defaults to full; if you choose grouped but don\'t provide "-g"'
+                        ' it will also be full.')
+    #parser.add_argument('-c', '--covars', action='store_true',
+    #                    help=
+    #                    'Should covars be initialised in a grouped way?'
+    #                    ' Ignored when -g is not provided or when distribution is not Gaussian.')
     args = parser.parse_args()
     args = check_args(args)
     return args
@@ -122,6 +136,19 @@ def check_args(args):
             args.quantiles = np.linspace(0, 1, args.number_of_states)
     return args
 
+def get_covariance_type(args):
+    if args.distribution == "NB" and args.covariance_type is not None:
+        logging.info("Argument covariance type is ignored for Negative Binomial distribution.")
+    if args.distribution == "Gauss" and args.covariance_type is None:
+        args.covariance_type = 'full'
+    grouped = False
+    if args.covariance_type == "grouped":
+        grouped = True
+        args.covariance_type = "full"
+    if args.distribution == "Gauss" and args.covariance_type not in COVARIANCE_TYPES:
+        sys.exit("Covariance type must be one of: %s. I don't understand your option: %s." %
+                 (str(COVARIANCE_TYPES), args.covariance_type))
+    return grouped
 
 def main():
     arguments = parse_arguments()
@@ -157,15 +184,19 @@ def main():
 
     logging.info("Command used: %s", " ".join(sys.argv))
     logging.info("Creating data structure...")
+    covariance_grouped = get_covariance_type(arguments)
     model = Model(number_of_states=arguments.number_of_states,
                   distribution=arguments.distribution,
-                  random_seed=arguments.random_seed)
+                  random_seed=arguments.random_seed,
+                  covariance_type=arguments.covariance_type)
     logging.debug("Random seed: %d", model.random_seed)
     logging.info("Reading in data...")
     model.read_in_files(arguments.infiles, resolution=arguments.resolution)
     logging.debug("Window size: %i", model.data.window_size)
     logging.debug("Chromosome names: %s", str(model.data.chromosome_names))
     logging.debug("Chromosome ends: %s", str(model.data.chromosome_ends))
+    if arguments.distribution == "Gauss":
+        logging.debug("Covariance type: %s", str(arguments.covariance_type))
     logging.info("All files read in.")
     if arguments.threshold != 0:
         logging.info("Preparing data for fitting.")
@@ -174,13 +205,9 @@ def main():
     if arguments.groups:
         logging.debug("I will initialise grouped means")
         model.initialise_grouped_means(arguments.groups, arguments.quantiles)
-        if arguments.covars:
-            if arguments.distribution == "NB":
-                logging.info("Grouped covars not supported for NB."
-                             " I will ignore -c option.")
-            else:
-                logging.debug("I will initialise grouped covars")
-                model.initialise_grouped_covars(arguments.groups)
+        if covariance_grouped and arguments.distribution == "Gauss":
+            logging.debug("I will initialise grouped covars")
+            model.initialise_grouped_covars(arguments.groups)
     elif arguments.means:
         logging.info("Initialising given means...")
         model.initialise_constant_means(arguments.means)
@@ -193,7 +220,7 @@ def main():
     logging.info("Predicting states...")
     model.predict_states()
     peaks = model.which_state_is_peaks()
-    logging.info("Peaks: state %d" % peaks)
+    logging.info("Peaks: state %d", peaks)
     model.save_states_to_seperate_files(arguments.output_prefix)
     model.write_stats_to_file(arguments.output_prefix)
     #if arguments.save_peaks:

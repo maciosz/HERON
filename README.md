@@ -41,7 +41,7 @@ possibly with
      Used only for reading bams, has no effect on bedgraphs.
      By default it's 600.
 
---dont-save - do not save one of the states as peaks
+--dont-save - do not save one of the states as peaks (currently not used)
 
 --random-seed - Specify random seed. Can be used for reproducibility.
     In current implemantation there is no randomness,
@@ -57,10 +57,15 @@ Initialising means options:
      provide order of these groups here
      using 0s, 1s and so on.
 
-Initialising covariance options:
+Covariance options:
 
--c - works only with -g;
-     should covariance matrix be initialised in a groupped way?
+-c - works only with and Gaussian distribution;
+     what covariance type (full / diag / spherical / tied) should I use?
+     If you provie "-g" argument you can also specify "grouped" here;
+     then covariance matrix will be full, but initialised in a groupped way,
+     i.e. it will be full inside groups and equal zero between groups.
+     It might end up "fully full", mind you.
+     Defaults to full.
 
 
 ### Current output:
