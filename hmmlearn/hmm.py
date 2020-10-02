@@ -24,7 +24,7 @@ import hmmlearn.finding_r
 from . import _utils
 from .stats import log_multivariate_normal_density
 from .base import _BaseHMM
-from .utils import iter_from_X_lengths, normalize, fill_covars
+from .utils import iter_from_X_lengths, normalize, fill_covars, array2str
 
 
 __all__ = ["GMMHMM", "GaussianHMM", "MultinomialHMM", "NegativeBinomialHMM"]
@@ -149,13 +149,15 @@ class GaussianHMM(_BaseHMM):
                  covars_prior=1e-2, covars_weight=1,
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
-                 params="stmc", init_params="stmc"):
+                 params="stmc", init_params="stmc",
+                 debug_prefix=None):
         _BaseHMM.__init__(self, n_components,
                           startprob_prior=startprob_prior,
                           transmat_prior=transmat_prior, algorithm=algorithm,
                           random_state=random_state, n_iter=n_iter,
                           tol=tol, params=params, verbose=verbose,
-                          init_params=init_params)
+                          init_params=init_params,
+                          debug_prefix=debug_prefix)
 
         self.covariance_type = covariance_type
         self.min_covar = min_covar
@@ -214,6 +216,13 @@ class GaussianHMM(_BaseHMM):
                     cv, self.covariance_type, self.n_components).copy()
         logging.debug("Initial covars:")
         logging.debug(self.covars_)
+        if self.debug_prefix is not None:
+             with open("%smeans_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.means_))
+             with open("%scovars_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.covars_))
 
     def _compute_log_likelihood(self, X):
         lmnd = log_multivariate_normal_density(
@@ -315,7 +324,13 @@ class GaussianHMM(_BaseHMM):
                                      (cvweight + stats['post'][:, None, None]))
             logging.debug("new covars:")
             logging.debug(self.covars_)
-
+        if self.debug_prefix is not None:
+             with open("%smeans_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.means_))
+             with open("%scovars_%d" %
+                           (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.covars_))
 
 class MultinomialHMM(_BaseHMM):
     r"""Hidden Markov Model with multinomial (discrete) emissions
@@ -1058,12 +1073,18 @@ class NegativeBinomialHMM(_BaseHMM):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params=string.ascii_letters,
-                 init_params=string.ascii_letters):
-        _BaseHMM.__init__(self, n_components,
-                          startprob_prior, transmat_prior,
-                          algorithm, random_state,
-                          n_iter, tol, verbose,
-                          params, init_params)
+                 init_params=string.ascii_letters,
+                 debug_prefix=None):
+        _BaseHMM.__init__(self,
+                          n_components=n_components,
+                          startprob_prior=startprob_prior,
+                          transmat_prior=transmat_prior,
+                          algorithm=algorithm,
+                          random_state=random_state,
+                          n_iter=n_iter, tol=tol,
+                          verbose=verbose,
+                          params=params, init_params=init_params,
+                          debug_prefix=debug_prefix)
         self._update_r_ = True
         self._update_p_ = False
 
@@ -1087,6 +1108,19 @@ class NegativeBinomialHMM(_BaseHMM):
             self.p_ = p
         if 'r' in self.init_params or not hasattr(self, "r_"):
             self.r_ = r
+        if self.debug_prefix is not None:
+             with open("%smeans_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.means_))
+             with open("%scovars_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.covars_))
+             with open("%sr_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.r_))
+             with open("%sp_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.p_))
 
     def _estimate_means(self, X):
         """
@@ -1308,6 +1342,20 @@ class NegativeBinomialHMM(_BaseHMM):
         logging.debug(self.r_)
         logging.debug(self.means_)
         logging.debug(self.covars_)
+        if self.debug_prefix is not None:
+             with open("%smeans_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.means_))
+             with open("%scovars_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.covars_))
+             with open("%sr_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.r_))
+             with open("%sp_%d" %
+                       (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.p_))
+
 
     def _update_p(self, stats):
         """

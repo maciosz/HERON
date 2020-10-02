@@ -15,7 +15,8 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 class Model():
 
     def __init__(self, number_of_states, distribution,
-                 random_seed=None, covariance_type='full'):
+                 random_seed=None, covariance_type='full',
+                 debug_prefix=None):
         """
         number_of_states - int; how many states the HMM should have
         distribution - str; either "NB" for negative binomial or "Gauss"
@@ -34,6 +35,7 @@ class Model():
         self.data_for_training = Data()
         self.number_of_states = number_of_states
         self.distribution = distribution
+        self.debug_prefix = debug_prefix
         self.model = self._create_HMM(covariance_type)
         self.probability = None
         self.number_of_samples = 0
@@ -45,6 +47,7 @@ class Model():
                                     covariance_type=covariance_type,
                                     n_iter=1000, tol=0.1,
                                     random_state=random_state,
+                                    debug_prefix=self.debug_prefix,
                                     #means_weight = 0.00001,
                                     #init_params = 'cts',
                                     verbose=True)
@@ -53,6 +56,7 @@ class Model():
                                             n_iter=1000,
                                             tol=0.1,
                                             random_state=random_state,
+                                            debug_prefix=self.debug_prefix,
                                             verbose=True)
         return model
 

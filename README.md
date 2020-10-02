@@ -67,6 +67,13 @@ Covariance options:
      It might end up "fully full", mind you.
      Defaults to full.
 
+Debugging options:
+
+--debug - save all intermediate results.
+          That will probably be a lot of large files. You've been warned.
+
+--debug-prefix - where these files should be saved and with what prefix?
+
 
 ### Current output:
 

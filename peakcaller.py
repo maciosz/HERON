@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import sys
 import logging
 import argparse
@@ -113,6 +114,18 @@ def parse_arguments():
     #                    help=
     #                    'Should covars be initialised in a grouped way?'
     #                    ' Ignored when -g is not provided or when distribution is not Gaussian.')
+    parser.add_argument('--debug', action='store_true',
+                        help=
+                        'If you want I can save all intermediate results.'
+                        ' Warning: it will (probably) be a lot of large files. Decide wisely.')
+    parser.add_argument('--debug-prefix', default=None,
+                        help=
+                        ' If you chose "--debug" option,'
+                        ' you can provide here some prefix for the result files.'
+                        ' In particular, the prefix can contain desired path where I should save the results,'
+                        ' e.g. "../intermediate_results/my_prefix".'
+                        ' If you don\'t specify this argument, I will create directory "[output_prefix]_results"'
+                        ' and I will save the results there, without any prefix.')
     args = parser.parse_args()
     args = check_args(args)
     return args
@@ -134,6 +147,12 @@ def check_args(args):
             args.quantiles = [0, 0.5, 0.99]
         else:
             args.quantiles = np.linspace(0, 1, args.number_of_states)
+    if args.debug:
+        if args.debug_prefix is None:
+            args.debug_prefix = args.output_prefix + "_results/"
+            os.mkdir(args.debug_prefix)
+        elif not args.debug_prefix.endswith("_"):
+            args.debug_prefix += "_"
     return args
 
 def get_covariance_type(args):
@@ -188,6 +207,7 @@ def main():
     model = Model(number_of_states=arguments.number_of_states,
                   distribution=arguments.distribution,
                   random_seed=arguments.random_seed,
+                  debug_prefix=arguments.debug_prefix,
                   covariance_type=arguments.covariance_type)
     logging.debug("Random seed: %d", model.random_seed)
     logging.info("Reading in data...")

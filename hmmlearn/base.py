@@ -12,7 +12,7 @@ from sklearn.utils import check_array, check_random_state
 from sklearn.utils.validation import check_is_fitted
 
 from . import _hmmc
-from .utils import normalize, log_normalize, iter_from_X_lengths, log_mask_zero
+from .utils import normalize, log_normalize, iter_from_X_lengths, log_mask_zero, array2str
 
 
 #: Supported decoder algorithms.
@@ -193,6 +193,7 @@ class _BaseHMM(BaseEstimator):
                  algorithm="viterbi", random_state=None,
                  n_iter=10, tol=1e-2, verbose=False,
                  params=string.ascii_letters,
+                 debug_prefix=None,
                  init_params=string.ascii_letters):
         self.n_components = n_components
         self.params = params
@@ -205,6 +206,9 @@ class _BaseHMM(BaseEstimator):
         self.tol = tol
         self.verbose = verbose
         self.monitor_ = ConvergenceMonitor(self.tol, self.n_iter, self.verbose)
+        self.debug_prefix = debug_prefix
+        self.iteration = 0
+        self.inner_iteration = 0
 
     def get_stationary_distribution(self):
         """Compute the stationary distribution of states.
@@ -467,19 +471,47 @@ class _BaseHMM(BaseEstimator):
         self._check()
 
         self.monitor_._reset()
+        if self.debug_prefix is not None:
+            logprobs_file = open("%slogprobs" % self.debug_prefix, "w")
         for iter in range(self.n_iter):
+            self.iteration = iter
+            self.inner_iteration = 0
             stats = self._initialize_sufficient_statistics()
             curr_logprob = 0
             for i, j in iter_from_X_lengths(X, lengths):
+                if self.debug_prefix is not None and iter == 0:
+                    with open("%sdata_%d" % (self.debug_prefix, self.inner_iteration), "w") as output:
+                        output.write(array2str(X[i:j]))
                 framelogprob = self._compute_log_likelihood(X[i:j])
                 framelogprob = np.asarray(framelogprob, dtype=np.float128)
+                if self.debug_prefix is not None:
+                    with open("%sframelogprob_%d_%d" %
+                              (self.debug_prefix, self.iteration, self.inner_iteration), 'w') as output:
+                        output.write(array2str(framelogprob))
                 logprob, fwdlattice = self._do_forward_pass(framelogprob)
+                if self.debug_prefix is not None:
+                    logprobs_file.write("%d\t%d\t%f\t%f\n" % (self.iteration, self.inner_iteration, logprob, curr_logprob))
+                if self.debug_prefix is not None:
+                    with open("%sfwdlattice_%d_%d" %
+                              (self.debug_prefix, self.iteration, self.inner_iteration), 'w') as output:
+                        output.write(array2str(fwdlattice))
                 curr_logprob += logprob
                 bwdlattice = self._do_backward_pass(framelogprob)
+                if self.debug_prefix is not None:
+                    with open("%sbwdlattice_%d_%d" %
+                              (self.debug_prefix, self.iteration, self.inner_iteration), 'w') as output:
+                        output.write(array2str(bwdlattice))
                 posteriors = self._compute_posteriors(fwdlattice, bwdlattice)
+                if self.debug_prefix is not None:
+                    with open("%sposteriors_%d_%d" %
+                              (self.debug_prefix, self.iteration, self.inner_iteration), 'w') as output:
+                        output.write(array2str(posteriors))
                 self._accumulate_sufficient_statistics(
                     stats, X[i:j], framelogprob, posteriors, fwdlattice,
                     bwdlattice)
+                if self.debug_prefix is not None:
+                    save_stats(stats, self.debug_prefix, "_%d_%d" % (self.iteration, self.inner_iteration))
+                self.inner_iteration += 1
 
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
@@ -489,6 +521,8 @@ class _BaseHMM(BaseEstimator):
             if self.monitor_.converged:
                 break
 
+        if self.debug_prefix is not None:
+            logprobs_file.close()
         return self
 
     def _do_viterbi_pass(self, framelogprob):
@@ -545,6 +579,13 @@ class _BaseHMM(BaseEstimator):
         if 't' in self.init_params or not hasattr(self, "transmat_"):
             self.transmat_ = np.full((self.n_components, self.n_components),
                                      init)
+        if self.debug_prefix is not None:
+            with open("%sstartprob_%d" %
+                      (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.startprob_))
+            with open("%stransmat_%d" %
+                      (self.debug_prefix, self.iteration), 'w') as output:
+                output.write(array2str(self.transmat_))
 
     def _check(self):
         """Validates model parameters prior to fitting.
@@ -699,3 +740,16 @@ class _BaseHMM(BaseEstimator):
         logging.debug(self.startprob_)
         logging.debug("transition matrix:")
         logging.debug(self.transmat_)
+
+def save_stats(stats, prefix="", suffix=""):
+    """
+    Save dictionary of stats to files.
+    File with name [prefix]stats[key][suffix]
+    has value for key [key].
+    """
+    for key, value in stats.items():
+        with open(prefix + "stats" + key + suffix, "w") as output:
+            #logging.info("key, value type:")
+            #logging.info(key)
+            #logging.info(type(value))
+            output.write(array2str(value))
