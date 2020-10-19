@@ -1302,7 +1302,7 @@ class NegativeBinomialHMM(_BaseHMM):
         super(NegativeBinomialHMM, self)._do_mstep(stats)
         # update:
         #self.p_, self.r_, self.means_, self.covars_
-        if np.any((stats['obs']) == 0):
+        if np.any((stats['post']) == 0):
             raise RuntimeError("stats['post'] has zeros."
                                " It means for at least one state the following is true:"
                                " for every window, there is zero posterior probability"
@@ -1311,8 +1311,8 @@ class NegativeBinomialHMM(_BaseHMM):
                                " Maybe different initial means will help."
                                " No reason to continue now,"
                                " from here only errors await."
-                               " For debugging / replicating purposes"
-                               " have current values for some parameters:"
+                               " Here are current values of some parameters,"
+                               " for debugging / replicating purposes:\n"
                                " means:\n%s\n covars:\n%s\n p:\n%s\n r:\n%s\n"
                                " stats['obs'] (posteriors.T * X):\n%s\n"
                                " stats['post'] (sum posteriors):\n%s\n"

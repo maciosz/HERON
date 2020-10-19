@@ -47,6 +47,11 @@ def parse_arguments():
                         help='distribution of emissions; "Gauss" or "NB" (default);'
                              ' you can also use "g", "G"'
                              ' or "n", "N", "negativebinomial".')
+    parser.add_argument('--control', default=None, nargs='+',
+                        help=
+                        'control file(s), usually called input.'
+                        ' Either provide one and I will reuse it for all samples,'
+                        ' or one for every sample.')
     parser.add_argument('-t', dest='threshold',
                         action='store', type=float, default=0,
                         help='t promils of windows with highest value'
@@ -142,6 +147,8 @@ def check_args(args):
                   str(list(DISTRIBUTIONS.keys())),
                   str(list(DISTRIBUTIONS_REVERSE.keys()))))
     args.distribution = distribution
+    if args.distribution == "NB" and args.control is not None:
+        raise ValueError("Control files are supported only for Gauss distribution. Sorry.")
     if args.quantiles is None:
         if args.number_of_states == 3:
             args.quantiles = [0, 0.5, 0.99]
@@ -218,10 +225,14 @@ def main():
     if arguments.distribution == "Gauss":
         logging.debug("Covariance type: %s", str(arguments.covariance_type))
     logging.info("All files read in.")
+    logging.info("Preparing data for fitting.")
     if arguments.threshold != 0:
-        logging.info("Preparing data for fitting.")
         logging.info("Filtering data...")
         model.filter_training_data(arguments.threshold)
+    if arguments.control is not None:
+        model.read_in_files(arguments.control, resolution=arguments.resolution,
+                            add = True)
+        model.normalise_data()
     if arguments.groups:
         logging.debug("I will initialise grouped means")
         model.initialise_grouped_means(arguments.groups, arguments.quantiles)

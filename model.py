@@ -226,52 +226,26 @@ class Model():
             self.model.n_components = self.number_of_states
         return template
 
-    def initialise_transition_matrix(self, n_peaks):
-        """
-        To trzeba recznie zmieniac zeby dostosowac do aktualnych potrzeb.
-        W fazie testowania.
-        W sumie bym to wywalila, to nic nie daje.
-        """
-        self.model.init_params = self.model.init_params.replace("t", "")
-        #how_many_peak_states = self.number_of_states - 1
-        #background = [1 - n_peaks * how_many_peak_states]
-        #             + [n_peaks] * how_many_peak_states
-        #peak = [1 - 2 * n_peaks * how_many_peak_states] +
-        #       + [2 * n_peaks] * how_many_peak_states
-        #transmat = np.array(background,
-        #                    peak * how_many_peak_states)
-        #how_many_background_states = self.number_of_states - 1
-        #background = [(1 - n_peaks) / how_many_background_states] \
-        #             * how_many_background_states \
-        #             + [n_peaks]
-        #peak = [(1 - 5 * n_peaks) / how_many_background_states] \
-        #             * how_many_background_states \
-        #             + [5 * n_peaks]
-        #print background
-        #print peak
-        #transmat = numpy.array([background] * how_many_background_states + \
-        #                    [peak])
-        transmat = numpy.array([[0.5, 0.5, 0, 0],
-                                [0.5 - n_peaks, 0.5, n_peaks, 0],
-                                [0, 0.45, 0.1, 0.45],
-                                [0, 0, 0.5, 0.5]])
-        self.model.transmat_ = transmat
-        #logging.debug(str(transmat))
-
-    def read_in_files(self, files, resolution=0):
+    def read_in_files(self, files, resolution=0, add=False):
         """
         Read in files given as a list of strings.
         The data object actually does all the work.
         Resolution is needed only for reading bams;
         it's ignored when all the data are bedgraphs.
+
+        add - should files be added to the existing data?
         """
         if self.distribution == "NB":
             mean = False
         elif self.distribution == "Gauss":
             mean = True
-        self.number_of_samples = len(files)
-        logging.debug("Number of files: %d", self.number_of_samples)
-        self.data.add_data_from_files(files, resolution, mean)
+        if add == False:
+            self.number_of_samples = len(files)
+            logging.debug("Number of files: %d", self.number_of_samples)
+            self.data.add_data_from_files(files, resolution, mean)
+        else:
+            self.data.add_data_from_files(files, resolution, mean,
+                                          prepare_metadata=False)
         self.data_for_training = copy.deepcopy(self.data)
 
     def filter_data(self, threshold):
@@ -291,7 +265,7 @@ class Model():
         thus deconnecting chromosomes.
         See data.Data.split_data for details.
 
-        threshold - how many percentiles of windows we want to remove
+        threshold - how many promils of windows we want to remove
         """
         threshold_values = self.data_for_training.find_threshold_value(threshold)
         self.data_for_training.split_data(threshold_values)
@@ -482,6 +456,12 @@ class Model():
             logging.warning("Peak-state is not the last state. Beware.")
         return peaks
 
+    def normalise_data(self):
+        indexes_to_normalise = list(range(self.number_of_samples))
+        indexes_of_control = list(range(self.number_of_samples, self.data.matrix.shape[1]))
+        self.data.normalise_signals(indexes_to_normalise, indexes_of_control)
+        self.data_for_training.normalise_signals(indexes_to_normalise, indexes_of_control)
+
 def which_state_is_peaks(means):
     """
     Check which state represents peaks and returns its index.
@@ -575,3 +555,5 @@ def which_state_is_peaks(means):
                     " and feel free to change my decision."
                     " All the states are saved anyway.")
     return numpy.random.choice(which_states_have_highest_single_mean)
+
+    

@@ -364,7 +364,8 @@ class Data():
             raise ValueError("Unknown file type: %s" %
                              filename.split(".")[1])
 
-    def add_data_from_files(self, filenames, resolution=100, mean=True):
+    def add_data_from_files(self, filenames, resolution=100,
+                            mean=True, prepare_metadata=True):
         """
         Add data from multiple files.
         Use the first one as a source of metadata.
@@ -376,7 +377,8 @@ class Data():
             or not (summaric coverage)
             (used only for reading bams)
         """
-        self.prepare_metadata_from_file(filenames[0], resolution)
+        if prepare_metadata:
+            self.prepare_metadata_from_file(filenames[0], resolution)
         for filename in filenames:
             self.add_data_from_file(filename, mean)
         if len(self.matrix.shape) == 1:
@@ -417,6 +419,60 @@ class Data():
         Add given column to self.matrix.
         """
         self.matrix = numpy.c_[self.matrix, column]
+
+    def remove_column(self, column_index):
+        """
+        Remove given column from self.matrix.
+        """
+        self.matrix = numpy.delete(self.matrix, column_index, 1)
+
+    def normalise_column(self, signal_column, control_column,
+                         how = "log_diff"):
+        """
+        signal_column - index of column with signal (the one we want to normalise)
+        control_column - index of column with control (used to normalise)
+        how - how signal should be normalised? Supported:
+            "log_diff" - log(signal / control) = log(signal) - log(control)
+            "diff" - signal - control
+
+        Modifies self.matrix in place. Doesn't return anything.
+        """
+        signal = self.matrix[:, signal_column]
+        control = self.matrix[:, control_column]
+        if how == "log_diff":
+            normalized = numpy.log(signal / control)
+        if how == "diff":
+            normalized = signal - control
+        self.matrix[:, signal_column] = normalized
+
+    def normalise_signals(self, signal_columns, control_columns,
+                          how = "log_diff"):
+        """
+        Normalise columns with signal samples using columns with control samples.
+        Afterwards remove the control columns.
+        Modifies self.matrix in place. Doesn't return anything.
+
+        signal_columns - list of indexes of columns with signal
+        control_columns - list of indexes of columns with control
+        how - how signals should be normalised. See normalise_column()
+
+        Uwaga: w ogolnosci moglby uzytkownik chciec podac kontrole do kilku sygnalow
+        a do kilku nie. Tylko nie jestem pewna jak by to zaimplementowac
+        po stronie uzytkownika, w sensie jak wygodnie podawac takie opcje.
+        """
+        if len(control_columns) == 1 and len(signal_columns) > 1:
+            control_columns = numpy.repeat(control_columns, len(signal_columns))
+        elif len(control_columns) != len(signal_columns):
+            raise ValueError("Number of samples and controls don't match."
+                             " I can either take one control and many samples"
+                             " or exactly as many controls as samples."
+                             " I've got %d signals and %d controls" %
+                             (len(signal_columns), len(control_columns)))
+        for signal, control in zip(signal_columns, control_columns):
+            self.normalise_column(signal, control, how)
+        #for column in control_columns:
+        #    self.remove_column(column)
+        self.matrix = numpy.delete(self.matrix, control_columns, 1)
 
 def _check_condition(condition, interval):
     if condition is None:

@@ -28,6 +28,8 @@ possibly with
 
 -o - prefix to output files
 
+--control - control (input) files
+
 -l - level of logging
 
 -d - distribution of emissions (Gauss / NB; defaults to NB)
