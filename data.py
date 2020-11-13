@@ -61,11 +61,17 @@ class Data():
         for row_position, line in enumerate(self.matrix):
             for column_position, value in enumerate(line):
                 if row_position in to_skip:
-                    #continue
                     break
                 if value >= threshold[column_position]:
                     #logging.debug("splitting at %d!", row_position)
                     to_skip.append(row_position)
+        self._split_data(to_skip)
+
+    def _split_data(self, to_skip):
+        """
+        Split chromosomes into parts, removing positions listed in to_skip.
+        Update chromosome_ends, chromosome_names and numbers_of_windows.
+        """
         self.matrix = numpy.delete(self.matrix, to_skip, axis=0)
         new_numbers_of_windows = []
         new_names = []
@@ -75,11 +81,7 @@ class Data():
             chromosome = self._find_chromosome(position)
             chromosomes_to_split[chromosome].append(position)
         logging.debug(chromosomes_to_split)
-        #previous_end = -1
         for chromosome in range(len(self.chromosome_names)):
-            #if chromosome > 0:
-            #    #previous_end = self.chromosome_ends[chromosome - 1]
-            #    previous_end = self.numbers_of_windows[chromosome-1] #?
             end = self.chromosome_ends[chromosome]
             name = self.chromosome_names[chromosome]
             number_of_windows = self.numbers_of_windows[chromosome]
@@ -440,7 +442,8 @@ class Data():
         signal = self.matrix[:, signal_column]
         control = self.matrix[:, control_column]
         if how == "log_diff":
-            normalized = numpy.log(signal / control)
+            #normalized = numpy.log(signal / control)
+            normalized = numpy.log((signal+1) / (control+1))
         if how == "diff":
             normalized = signal - control
         self.matrix[:, signal_column] = normalized
@@ -473,6 +476,13 @@ class Data():
         #for column in control_columns:
         #    self.remove_column(column)
         self.matrix = numpy.delete(self.matrix, control_columns, 1)
+        is_valid = numpy.all(numpy.isfinite(self.matrix), axis=1)
+        invalid_rows = numpy.where(~is_valid)[0]
+        invalid_rows = [int(x) for x in invalid_rows]
+        logging.debug("invalid rows:")
+        logging.debug(invalid_rows)
+        logging.debug(type(invalid_rows))
+        self._split_data(invalid_rows)
 
 def _check_condition(condition, interval):
     if condition is None:
