@@ -27,7 +27,7 @@ class Model():
         covariance_type - applicable only to Gaussian distribution;
                           supported values: diag, full, tied, spherical
         """
-        if not random_seed:
+        if random_seed is None:
             self.random_seed = random.randint(0, 2**32 - 1)
         else:
             self.random_seed = random_seed

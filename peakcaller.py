@@ -33,40 +33,40 @@ class StreamToLogger():
 
 def parse_arguments():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i', dest='infiles',
+    parser.add_argument('-i', '--infiles',
                         action='store', type=str, nargs='+',
                         help='input files (currently bam and bedgraph formats are allowed)')
-    parser.add_argument('-s', dest='number_of_states',
+    parser.add_argument('-s', '--number-of-states',
                         action='store', type=int, default=3,
                         help='number of states (default: 3)')
-    parser.add_argument('-o', dest='output_prefix',
+    parser.add_argument('-o', '--output-prefix',
                         action='store', type=str, default='',
                         help='prefix to output files')
-    parser.add_argument('-d', dest='distribution',
-                        action='store', type=str, default='NB',
-                        help='distribution of emissions; "Gauss" or "NB" (default);'
-                             ' you can also use "g", "G"'
+    parser.add_argument('-d', '--distribution',
+                        action='store', type=str, default='Gauss',
+                        help='distribution of emissions; "Gauss" (default) or "NB";'
+                             ' you can also use "g", "G", "gaussian"'
                              ' or "n", "N", "negativebinomial".')
     parser.add_argument('--control', default=None, nargs='+',
                         help=
                         'control file(s), usually called input.'
                         ' Either provide one and I will reuse it for all samples,'
                         ' or one for every sample.')
-    parser.add_argument('-t', dest='threshold',
+    parser.add_argument('-t', '--threshold',
                         action='store', type=float, default=0,
                         help='t promils of windows with highest value'
                         ' will not be used to train the model.'
                         ' 0 means no threshold.')
-    parser.add_argument('-l', dest='logging',
+    parser.add_argument('-l', '--logging',
                         action='store', type=str, default='i',
                         help=
                         'level of logging: c (critical), e (error), '
                         'w (warning), i (info), d (debug). '
                         'Defaults to i.')
-    parser.add_argument('-r', dest='resolution',
+    parser.add_argument('-r', '--resolution',
                         action='store', type=int, default=600,
                         help=
-                        'Resolution to use. Ignored when infiles are bedgraphs.'
+                        'Resolution to use. Ignored when input files are bedgraphs.'
                         'Defaults to 600.')
     parser.add_argument('--dont-save', dest='save_peaks',
                         action='store_false',
@@ -74,6 +74,11 @@ def parse_arguments():
                         'Should the state with highest mean be saved as peaks?'
                         ' By default it will.'
                         ' If you specify this, it won\'t.')
+    parser.add_argument('--save-all-states', action='store_true',
+                        help=
+                        'Should I save all the states'
+                        ' (one file for all at once, and one seperate for each)?'
+                        ' By default I won\'t.')
     parser.add_argument('-m', '--means', nargs='+', default=None, type=float,
                         help=
                         'Initial means. By default I will estimate them.'
@@ -83,10 +88,10 @@ def parse_arguments():
                         ' or p * k means'
                         ' (first all the means for the first state,'
                         ' then for the second etc.).')
-    parser.add_argument('--random-seed', '--rs', default=None, type=int,
-                        help=
-                        'random seed for initialising means.'
-                        ' Can be used to reproduce exact results.')
+    #parser.add_argument('--random-seed', '--rs', default=None, type=int,
+    #                    help=
+    #                    'random seed for initialising means.'
+    #                    ' Can be used to reproduce exact results.')
     parser.add_argument('-g', '--groups', nargs='+', type=int, default=None,
                         help=
                         'Are your samples divided into groups?'
@@ -111,7 +116,7 @@ def parse_arguments():
                         ' it means covariance matrix will be full inside groups'
                         ' and filled with zeros between groups.'
                         ' Note that unlike other options,'
-                        'grouped option applies only to the initial covariance matrix,'
+                        ' grouped option applies only to the initial covariance matrix,'
                         ' it can end up as full one.'
                         ' Defaults to full; if you choose grouped but don\'t provide "-g"'
                         ' it will also be full.')
@@ -213,7 +218,8 @@ def main():
     covariance_grouped = get_covariance_type(arguments)
     model = Model(number_of_states=arguments.number_of_states,
                   distribution=arguments.distribution,
-                  random_seed=arguments.random_seed,
+                  #random_seed=arguments.random_seed,
+                  random_seed=None,
                   debug_prefix=arguments.debug_prefix,
                   covariance_type=arguments.covariance_type)
     logging.debug("Random seed: %d", model.random_seed)
