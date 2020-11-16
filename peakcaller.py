@@ -164,6 +164,8 @@ def check_args(args):
             args.debug_prefix = args.output_prefix + "_results/"
             os.mkdir(args.debug_prefix)
         elif not args.debug_prefix.endswith("_"):
+            # TODO: maybe prefix is simply a directory name?
+            # Then we don't want _. To check.
             args.debug_prefix += "_"
     return args
 
@@ -258,10 +260,11 @@ def main():
     model.predict_states()
     peaks = model.which_state_is_peaks()
     logging.info("Peaks: state %d", peaks)
-    model.save_states_to_seperate_files(arguments.output_prefix)
+    if arguments.save_peaks:
+        model.save_state(arguments.output_prefix, peaks, "_peaks.bed")
+    if arguments.save_all_states:
+        model.save_all_states(arguments.output_prefix)
     model.write_stats_to_file(arguments.output_prefix)
-    #if arguments.save_peaks:
-    #    pass
     logging.info("...done.")
 
 if __name__ == '__main__':

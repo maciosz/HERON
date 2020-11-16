@@ -23,6 +23,8 @@ class Data():
         self.numbers_of_windows = []
         self.chromosome_names = []
         self.chromosome_ends = []
+        self.states = None
+        self.intervals = None
 
     def filter_data(self, threshold):
         """
@@ -175,28 +177,63 @@ class Data():
         # jezeli bedzie duzo okien o takich wartosciach to usune znacznie wiecej niz threshold.
         # ale nie wiem czy to nam przeszkadza.
 
-    def windows_to_intervals(self, which_line=0):
+    #def windows_to_intervals(self, which_line=0):
+    #    """
+    #    Convert data stored in self.matrix as windows
+    #    to intervals, savable in bed.
+    #    That is - merge neighbouring windows
+    #    if they have the same value,
+    #    and set proper coordinates at the end of chromosomes.
+
+    #    Returns list of tuples (chr, start, end, value).
+
+    #    which_line: integer;
+    #        which line of the matrix should be converted
+    #        (which sample / patient / matrix column);
+    #        indexing 0-based
+    #    """
+    #    #self.matrix = self.matrix.transpose()
+    #    output = []
+    #    previous_value = None
+    #    start, end = 0, None
+    #    previous_chromosome = 0
+    #    window = -1
+    #    for value in self.matrix[:, which_line]:
+    #        chromosome, window = self._goto_next_window(previous_chromosome, window)
+    #        if chromosome != previous_chromosome:
+    #            end = self.chromosome_ends[previous_chromosome]
+    #        elif value != previous_value and previous_value is not None:
+    #            end = window * self.window_size
+    #        if end is not None:
+    #            output.append([self.chromosome_names[previous_chromosome],
+    #                           start, end, previous_value])
+    #            start = window * self.window_size #+ 1
+    #            # beds are 0-based, half-open, so I think this should work fine.
+    #            end = None
+    #        previous_value, previous_chromosome = value, chromosome
+    #    output.append([self.chromosome_names[-1], start, self.chromosome_ends[-1], value])
+    #    #self.matrix = self.matrix.transpose()
+    #    self.intervals = output
+    #    return output
+
+    def states_to_intervals(self):
         """
-        Convert data stored in self.matrix as windows
+        Convert data stored in self.states as windows
         to intervals, savable in bed.
         That is - merge neighbouring windows
         if they have the same value,
         and set proper coordinates at the end of chromosomes.
 
         Returns list of tuples (chr, start, end, value).
-
-        which_line: integer;
-            which line of the matrix should be converted
-            (which sample / patient / matrix column);
-            indexing 0-based
         """
-        #self.matrix = self.matrix.transpose()
         output = []
         previous_value = None
         start, end = 0, None
         previous_chromosome = 0
         window = -1
-        for value in self.matrix[:, which_line]:
+        if self.states is None:
+            raise ValueError("States not predicted yet.")
+        for value in self.states:
             chromosome, window = self._goto_next_window(previous_chromosome, window)
             if chromosome != previous_chromosome:
                 end = self.chromosome_ends[previous_chromosome]
@@ -210,7 +247,7 @@ class Data():
                 end = None
             previous_value, previous_chromosome = value, chromosome
         output.append([self.chromosome_names[-1], start, self.chromosome_ends[-1], value])
-        #self.matrix = self.matrix.transpose()
+        self.intervals = output
         return output
 
     def _goto_next_window(self, chromosome, window):
@@ -484,26 +521,40 @@ class Data():
         logging.debug(type(invalid_rows))
         self._split_data(invalid_rows)
 
+    def save_intervals(self, output, condition=None, save_value=False):
+        if self.intervals is None:
+            self.states_to_intervals()
+        output = open(output, 'w')
+        for interval in self.intervals:
+            if _check_condition(condition, interval):
+                if save_value is False:
+                    interval = interval[:-1]
+                else:
+                    interval[-1] = int(interval[-1])
+                output.write('\t'.join(map(str, interval)))
+                output.write('\n')
+        output.close()
+
 def _check_condition(condition, interval):
     if condition is None:
         return True
     value = interval[-1]
     return value == condition
 
-def save_intervals_as_bed(output, intervals, condition=None, save_value=False):
-    """
-    Given set of intervals, saves it to file in bed format.
-    Chooses only the intervals with value equal to condition.
-    condition = None means all the intervals.
-    save_value = False means write only coordinates.
-    """
-    output = open(output, 'w')
-    for interval in intervals:
-        if _check_condition(condition, interval):
-            if save_value is False:
-                interval = interval[:-1]
-            else:
-                interval[-1] = int(interval[-1])
-            output.write('\t'.join(map(str, interval)))
-            output.write('\n')
-    output.close()
+#def save_intervals_as_bed(output, intervals, condition=None, save_value=False):
+#    """
+#    Given set of intervals, saves it to file in bed format.
+#    Chooses only the intervals with value equal to condition.
+#    condition = None means all the intervals.
+#    save_value = False means write only coordinates.
+#    """
+#    output = open(output, 'w')
+#    for interval in intervals:
+#        if _check_condition(condition, interval):
+#            if save_value is False:
+#                interval = interval[:-1]
+#            else:
+#                interval[-1] = int(interval[-1])
+#            output.write('\t'.join(map(str, interval)))
+#            output.write('\n')
+#    output.close()

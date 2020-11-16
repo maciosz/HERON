@@ -7,7 +7,7 @@ import itertools
 from collections import Counter
 import numpy
 from hmmlearn import hmm
-from data import Data, save_intervals_as_bed
+from data import Data #, save_intervals_as_bed
 
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 warnings.filterwarnings("ignore", category=RuntimeWarning)
@@ -80,7 +80,7 @@ class Model():
 
     def _set_means(self, means):
         if means.shape != (self.number_of_states, self.number_of_samples):
-            raise ValueError("Inproper shape of initialised means;"
+            raise ValueError("Incorrect shape of initialised means;"
                              " should be n_states * n_samples,"
                              " in this case %d * %d."
                              " Got %s" % (self.number_of_states,
@@ -94,7 +94,7 @@ class Model():
 
     def _set_covars(self, covars):
         if covars.shape != (self.number_of_states, self.number_of_samples, self.number_of_samples):
-            raise ValueError("Inproper shape of initialised covars;"
+            raise ValueError("Incorrect shape of initialised covars;"
                              " should be n_states * n_samples * n_samples,"
                              " in this case %d * %d * %d."
                              " Got %s" % (self.number_of_states,
@@ -312,27 +312,19 @@ class Model():
         Predict the states in the data.
         First needs to prepare the data
         and fit the model.
-        Add predicted states to the data matrix.
+        Add predicted states to the data object.
         """
-        #logging.info("predicting states, stay tuned")
-        #logging.info("prepairing data")
-        #logging.info("fitting model")
-        #logging.debug(self.model)
-        #if hasattr(self.model, "transmat_"):
-        #    logging.debug(self.model.transmat_)
-        #self.fit_HMM()
-        #logging.info("predicting states")
         self.probability, states = self.model.decode(self.data.matrix,
                                                      lengths=self.data.numbers_of_windows)
         logging.info("Is convergent: %s", str(self.model.monitor_.converged))
         #self.data.matrix = numpy.c_[self.data.matrix, states]
-        self.data.add_column(states)
+        self.data.states = states
+        #self.data.add_column(states)
         logging.info("Number of iterations till convergence: %i", self.model.monitor_.iter)
         #if self.distribution == "NB":
         #    if self.model.covars_le_means > 0:
         #        logging.warning("Covars <= means %i times during fitting. No good.",
         #                        self.model.covars_le_means)
-        #return states
 
     def prepair_data(self):
         """
@@ -350,18 +342,30 @@ class Model():
         #self.data_for_training.matrix = numpy.array(self.data.matrix).transpose()
         logging.debug("Matrix dimensions: %s", str(self.data.matrix.shape))
 
-    def save_states_to_seperate_files(self, output_prefix):
-        """
-        Changes states to intervals and saves them to seperate files.
-        Also writes one bed file with all the states.
-        Assumes the states are in the last column of the data matrix.
-        """
-        intervals = self.data.windows_to_intervals(-1)
-        output = output_prefix + "_all_states.bed"
-        save_intervals_as_bed(output, intervals, save_value=True)
+    #def save_states_to_seperate_files(self, output_prefix):
+    #    """
+    #    Changes states to intervals and saves them to seperate files.
+    #    Also writes one bed file with all the states.
+    #    Assumes the states are in the last column of the data matrix.
+    #    """
+    #    intervals = self.data.windows_to_intervals(-1)
+    #    output = output_prefix + "_all_states.bed"
+    #    save_intervals_as_bed(output, intervals, save_value=True)
+    #    for state in range(self.number_of_states):
+    #        output_name = output_prefix + "_state_" + str(state) + ".bed"
+    #        save_intervals_as_bed(output_name, intervals, state)
+
+    def save_state(self, output_prefix, which, suffix=None):
+        if suffix is None:
+            suffix = "_state_%d.bed" % which
+        name = output_prefix + suffix
+        self.data.save_intervals(name, which)
+
+    def save_all_states(self, output_prefix):
+        self.data.save_intervals("%s_all_states.bed" % output_prefix,
+                                 save_value=True)
         for state in range(self.number_of_states):
-            output_name = output_prefix + "_state_" + str(state) + ".bed"
-            save_intervals_as_bed(output_name, intervals, state)
+            self.save_state(output_prefix, state)
 
     def write_stats_to_file(self, output_prefix):
         """
