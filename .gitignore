@@ -78,10 +78,8 @@ hmmlearn/base.pyc
 hmmlearn/DZIALAJACA_WERSJA_P27
 hmmlearn/finding_r.pyc
 hmmlearn/finding_r.py_kopia
-hmmlearn/_hmmc.c
 hmmlearn/hmm_copy.py
 hmmlearn/hmm.pyc
-hmmlearn/__init__.py
 hmmlearn/__init__.pyc
 hmmlearn/kompilowanie_od_zera
 hmmlearn/mynumpy.pyc
@@ -90,11 +88,8 @@ hmmlearn/nowe_hmmlearn
 hmmlearn/ORYGINAL_hmmc.so_NIE_USUWAJ
 hmmlearn/__pycache__
 hmmlearn/python27_version
-hmmlearn/stats.py
 hmmlearn/tests
 hmmlearn/tmptmp
-hmmlearn/_utils.py
-hmmlearn/utils.py
 hmmlearn/utils.pyc
 hmmlearn/WAZNE
 logging_testing
