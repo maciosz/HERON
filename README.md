@@ -24,6 +24,16 @@ The program attempts to identify sites of enrichment
 
 These packages can be installed using pip.
 
+Make sure your default python is python3.
+ If it's not and you want to keep it that way,
+ either modify the first line of `peakcaller.py` and add `3` at the end:
+
+```
+#!/usr/bin/env python3
+```
+
+or run it always explicitly with `python3`, i.e. `python3 peakcaller.py`.
+
 The peakcaller uses also python package `hmmlearn`, but it's modified in comparison to the original one,
  so there is no point in installing it;
  our version is included in the repositorium, in `hmmlearn` directory.
