@@ -10,20 +10,31 @@ The program attempts to identify sites of enrichment
  This is preliminary test version of beta version,
  still under development.
  Because of this, some features might not be fully tested or even implemented.
- In case of any issues, questions or bugs please let me know:
+ In case of any issues, questions, suggestions or bugs please let me know:
  a.macioszek at mimuw.edu.pl.
 
-## Requirements:
+## Requirements
 
  - python3 (tested on python3.6)
  - python packages:
    - numpy
    - scipy
+   - sklearn
    - pysam
 
-The packages can be installed using pip.
+These packages can be installed using pip.
 
-## Installation:
+The peakcaller uses also python package `hmmlearn`, but it's modified in comparison to the original one,
+ so there is no point in installing it;
+ our version is included in the repositorium, in `hmmlearn` directory.
+ If you already have `hmmlearn` package, that's ok;
+ the peakcaller will use our version anyway.
+ The license under which `hmmlearn` is distributed and the authors that contributed to it
+ are available in the `hmmlearn` directory;
+ we are using the version from 09.2019.
+ You can check out the original package [here](https://github.com/hmmlearn/hmmlearn).
+
+## Installation
 
 No need to install.
  Just download the whole repository.
@@ -40,7 +51,7 @@ chmod +x peakcaller.py
 Then you can run it with just `./peakcaller.py`, instead of `python peakcaller.py`.
  
 
-## Simple usage:
+## Simple usage
 
 ```
 ./peakcaller.py -i sample.bam
@@ -58,9 +69,9 @@ possibly with
 --control - control (input) files
 ```
 
-For more possible arguments, go to **Advanced usage** section.
+For more possible arguments, go to [Advanced usage](https://github.com/maciosz/peakcaller#advanced-usage) section.
 
-## Current output:
+## Current output
 
 Generates file `[prefix]_peaks.bed` with coordinates of predicted peaks in bed format.
  If you specify `--save-all-states` option
@@ -160,7 +171,7 @@ Input files. .bam and .bedgraph formats are supported.
  program will convert them to integers
  (we don't mind floats with Gauss).
  You can provide multiple files here;
- see **Multiple files** section.
+ see [Multiple files](https://github.com/maciosz/peakcaller#multiple-files) section.
 
 ##### -o / --output-prefix
 
