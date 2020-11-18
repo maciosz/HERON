@@ -373,11 +373,9 @@ class Model():
         """
         output = open(output_prefix + "_stats.txt", "w")
         output.write("Score:\t"
-                     + str(self.model.score(numpy.delete(self.data.matrix, -1, axis=1),
+                     + str(self.model.score(self.data.matrix,
                                             self.data.numbers_of_windows))
                      + '\n')
-        # zapisywanie stanow do data.matrix troche zepsulo ten kawalek,
-        # musze usuwac ostatnia kolumne tutaj ^
         self.write_probability_to_file(output)
         self.write_transmat_to_file(output)
         self.write_means_to_file(output)
