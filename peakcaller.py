@@ -260,8 +260,10 @@ def main():
     model.predict_states()
     peaks = model.which_state_is_peaks()
     logging.info("Peaks: state %d", peaks)
+    model.score_peaks(peaks)
     if arguments.save_peaks:
-        model.save_state(arguments.output_prefix, peaks, "_peaks.bed")
+        model.save_state(arguments.output_prefix, peaks, "_peaks.bed",
+                         save_score=True)
     if arguments.save_all_states:
         model.save_all_states(arguments.output_prefix)
     model.write_stats_to_file(arguments.output_prefix)

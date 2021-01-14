@@ -326,6 +326,11 @@ class Model():
         #        logging.warning("Covars <= means %i times during fitting. No good.",
         #                        self.model.covars_le_means)
 
+    def score_peaks(self, which = 2):
+        _, posteriors = self.model.score_samples(self.data.matrix,
+                                                 lengths=self.data.numbers_of_windows)
+        self.data.score_peaks(posteriors, which)
+
     def prepair_data(self):
         """
         For NB distribution converts floats to ints.
@@ -355,11 +360,12 @@ class Model():
     #        output_name = output_prefix + "_state_" + str(state) + ".bed"
     #        save_intervals_as_bed(output_name, intervals, state)
 
-    def save_state(self, output_prefix, which, suffix=None):
+    def save_state(self, output_prefix, which,
+                   suffix=None, save_score=False):
         if suffix is None:
             suffix = "_state_%d.bed" % which
         name = output_prefix + suffix
-        self.data.save_intervals(name, which)
+        self.data.save_intervals(name, which, save_score=save_score)
 
     def save_all_states(self, output_prefix):
         self.data.save_intervals("%s_all_states.bed" % output_prefix,

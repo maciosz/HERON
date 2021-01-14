@@ -120,7 +120,8 @@ class ConvergenceMonitor(object):
         # and return a warning if it is not.
         return (self.iter == self.n_iter or
                 (len(self.history) == 2 and
-                 self.history[1] - self.history[0] < self.tol))
+                 #self.history[1] - self.history[0] < self.tol))
+                 abs(self.history[1] - self.history[0]) < self.tol))
 
 
 class _BaseHMM(BaseEstimator):

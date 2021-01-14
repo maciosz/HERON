@@ -25,6 +25,7 @@ class Data():
         self.chromosome_ends = []
         self.states = None
         self.intervals = None
+        self.scores = []
 
     def filter_data(self, threshold):
         """
@@ -521,19 +522,55 @@ class Data():
         logging.debug(type(invalid_rows))
         self._split_data(invalid_rows)
 
-    def save_intervals(self, output, condition=None, save_value=False):
+    def save_intervals(self, output, condition=None,
+                       save_value=False, save_score=False):
         if self.intervals is None:
             self.states_to_intervals()
         output = open(output, 'w')
-        for interval in self.intervals:
+        for nr, interval in enumerate(self.intervals):
             if _check_condition(condition, interval):
                 if save_value is False:
                     interval = interval[:-1]
                 else:
+                    # ? po co to?
                     interval[-1] = int(interval[-1])
+                if save_score:
+                    interval.append(self.scores[nr])
                 output.write('\t'.join(map(str, interval)))
                 output.write('\n')
         output.close()
+
+    def score_peaks(self, posteriors, which):
+        """
+        posteriors - array n_obs x n_states
+        which - int; which state represents peaks
+        """
+        if self.intervals is None:
+            self.states_to_intervals()
+        start_index = 0
+        end_index = 0
+        for interval in self.intervals:
+            chrom, start, end, state = interval
+            number_of_windows = (end - start) / self.window_size
+            number_of_windows = int(numpy.ceil(number_of_windows))
+            end_index = start_index + number_of_windows
+            interval_posteriors = posteriors[start_index:end_index, state]
+            score = _get_score_from_posteriors(interval_posteriors)
+            self.scores.append(score)
+            #logging.info("interval:")
+            #logging.info(interval)
+            #logging.info("posteriors:")
+            #logging.info(interval_posteriors)
+            start_index = end_index
+        #logging.info("scores:")
+        #logging.info(self.scores)
+        #logging.info(len(self.scores))
+
+def _get_score_from_posteriors(posteriors):
+    # na razie po prostu max
+    chosen_posteriors =  max(posteriors)
+    # i robie log(1-x) * -10 zeby bylo bardziej human readable
+    return numpy.log(1 - chosen_posteriors) * -10
 
 def _check_condition(condition, interval):
     if condition is None:
