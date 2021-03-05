@@ -326,10 +326,11 @@ class Model():
         #        logging.warning("Covars <= means %i times during fitting. No good.",
         #                        self.model.covars_le_means)
 
-    def score_peaks(self, which = 2):
+    def score_peaks(self, which=2):
         _, posteriors = self.model.score_samples(self.data.matrix,
                                                  lengths=self.data.numbers_of_windows)
-        self.data.score_peaks(posteriors, which)
+        self.data.posteriors = posteriors
+        self.data.score_peaks(which)
 
     def prepair_data(self):
         """
@@ -457,6 +458,7 @@ class Model():
         Check which state represents peaks and returns its index.
         If it's not the last state, log a warning.
         It uses outside function because it was easier to implement the warning that way.
+        (Why?)
         """
         means = self.model.means_
         peaks = which_state_is_peaks(means)
@@ -489,7 +491,7 @@ def which_state_is_peaks(means):
     7 2 2
     1 9 0
 
-    we would choose the second row, because 7+2+2/3 is the highest average mean.
+    we would choose the second row, because (7+2+2)/3 is the highest average mean.
     If we have a draw in this case too, we choose the state for which the maximum is higher.
     E.g. for means like that:
 
@@ -561,7 +563,6 @@ def which_state_is_peaks(means):
                     " I will choose randomly from the candidates."
                     " Please review estimated means and other parameters"
                     " and feel free to change my decision."
-                    " All the states are saved anyway.")
+                    " All the states might be saved anyway (with --save-all-states option).")
     return numpy.random.choice(which_states_have_highest_single_mean)
 
-    

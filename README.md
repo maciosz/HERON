@@ -7,7 +7,7 @@ The program attempts to identify sites of enrichment
  i.e. sites of presumed enrichment.
 
 *Warning.*
- This is preliminary test version of beta version,
+ This is a preliminary test version of a beta version,
  still under development.
  Because of this, some features might not be fully tested or even implemented.
  In case of any issues, questions, suggestions or bugs please let me know:
@@ -79,16 +79,24 @@ possibly with
 --control - control (input) files
 ```
 
+Bedgraph file should have fixed resolution
+ and for every chromosome it should start at 0.
+
 For more possible arguments, go to [Advanced usage](https://github.com/maciosz/peakcaller#advanced-usage) section.
 
 ## Current output
 
-Generates file `[prefix]_peaks.bed` with coordinates of predicted peaks in bed format.
- If you specify `--save-all-states` option
+Generates couple of files:
+
+ - `[prefix]_peaks.bed` with coordinates of predicted peaks in bed format
+ - `[prefix].log` with log messages
+ - `[prefix]_stats.txt` with some statistics and estimated parameters
+ - `[prefix]_peaks.tab` similar to the bed file, but with more columns
+ corresponding to different ways of scoring peaks. See [Scoring peaks](https://github.com/maciosz/peakcaller#scoring-peaks).
+
+If you specify `--save-all-states` option
  it will also generate seperate file `[prefix]_state_[x].bed` for each state
- and one extra `[prefix]_all_states.bed` with state marked in the 3rd column.
- Also generates `[prefix].log` file with log messages
- and `[prefix]_stats.txt` with some statistics.
+ and one extra `[prefix]_all_states.bed` with state marked in the 4th column.
 
 ## How it works
 
@@ -122,7 +130,7 @@ After fitting HMM to data, the states can be arranged according to their mean.
  Thus, sorted states can be interpreted as "no signal", "background / noise" and "peaks / enrichment".
 
 In the last step, Viterbi algorithm is used to determine the most likely sequence of states;
- i.e. assign state to every window.
+ i.e. to assign state to every window.
  Usually we are most interested in windows in "peak" state;
  coordinates of those are considered peaks.
  By default, only peaks are saved;
@@ -179,7 +187,7 @@ Input files. .bam and .bedgraph formats are supported.
  If there are some floats in the bedgraph
  and distribution is set to Negative Binomial,
  program will convert them to integers
- (we don't mind floats with Gauss).
+ (we don't mind floats with Gaussian distribution).
  You can provide multiple files here;
  see [Multiple files](https://github.com/maciosz/peakcaller#multiple-files) section.
 
@@ -201,6 +209,11 @@ Control file(s), usually called input.
 
 Resolution to use. Ignored when input files are bedgraphs. Defaults to 600.
 
+##### --scores
+
+What should I save as peak scores to the bed file?
+ Possible options: uhmm, none so far.
+
 ### You probably don't want to use these:
 
 ##### -d / --distribution
@@ -221,20 +234,20 @@ Number of states in Hidden Markov Model. Defaults to 3 for simple peakcalling
 Level of logging: c (critical), e (error), w (warning), i (info) or d (debug).
  Defaults to i.
 
-##### --dont-save
+##### --dont-save-peaks
 
 Should the state with highest mean be saved as peaks?
  By default it will. If you specify this, it won't.
 
 ##### --save-all-states
 
-Should all states be saved?
- If you specify this and not `--dont-save`,
+Should all the states be saved?
+ If you specify this and not `--dont-save-peaks`,
  the peak state would be saved twice.
 
 ##### --debug
 
-If you want I can save all intermediate results:
+If you want I can save all the intermediate results:
  estimates of parameters in every iteration, posterior probabilities etc.
  Warning: it will (probably) be a lot of large files.
  Decide wisely.
@@ -242,9 +255,9 @@ If you want I can save all intermediate results:
 ##### --debug-prefix
 
 If you chose `--debug` option, you can provide here some prefix for the result files.
- In particular, the prefix can contain desired path where I should save the results,
+ In particular, the prefix can contain a desired path where I should save the results,
  e.g. `../intermediate_results/my_prefix`.
- If you don't specify this argument, I will create  directory `[output_prefix]_results`
+ If you don't specify this argument, I will create a directory `[output_prefix]_results`
  and I will save the results there, without any prefix.
 
 ##### -c / --covariance-type
@@ -262,7 +275,7 @@ Type of covariance matrix. Ignored when distribution is not Gaussian.
 ##### -m / --means 
 
 Initial means. By default I will estimate them, but you can provide your own estimates here.
-  When you have p samples and k states you should provide
+ When you have p samples and k states you should provide
  either k means (then I will use these means for all samples)
  or p * k means (first all the means for the first state, then for the second etc.).
 
@@ -285,3 +298,10 @@ Are your samples divided into groups?
  You can specify more than two groups.
 
 
+## Scoring peaks
+
+TBA.
+
+## Bibliography
+
+TBA.

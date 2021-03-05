@@ -68,7 +68,11 @@ def parse_arguments():
                         help=
                         'Resolution to use. Ignored when input files are bedgraphs.'
                         'Defaults to 600.')
-    parser.add_argument('--dont-save', dest='save_peaks',
+    parser.add_argument('--scores',
+                        help=
+                        'What should I save as peak score to the bed file?'
+                        ' Possible options: uhmm, none so far.')
+    parser.add_argument('--dont-save-peaks', dest='save_peaks',
                         action='store_false',
                         help=
                         'Should the state with highest mean be saved as peaks?'
@@ -118,8 +122,8 @@ def parse_arguments():
                         ' Note that unlike other options,'
                         ' grouped option applies only to the initial covariance matrix,'
                         ' it can end up as full one.'
-                        ' Defaults to full; if you choose grouped but don\'t provide "-g"'
-                        ' it will also be full.')
+                        ' Defaults to diag; if you choose grouped but don\'t provide "-g"'
+                        ' it will be full.')
     #parser.add_argument('-c', '--covars', action='store_true',
     #                    help=
     #                    'Should covars be initialised in a grouped way?'
@@ -173,7 +177,7 @@ def get_covariance_type(args):
     if args.distribution == "NB" and args.covariance_type is not None:
         logging.info("Argument covariance type is ignored for Negative Binomial distribution.")
     if args.distribution == "Gauss" and args.covariance_type is None:
-        args.covariance_type = 'full'
+        args.covariance_type = 'diag'
     grouped = False
     if args.covariance_type == "grouped":
         grouped = True
