@@ -52,6 +52,13 @@ def parse_arguments():
                         'control file(s), usually called input.'
                         ' Either provide one and I will reuse it for all samples,'
                         ' or one for every sample.')
+    parser.add_argument('--merge', action='store_true', help=
+                        'Ignored when you provide only one input file'
+                        ' (or one input file and one control for it).'
+                        ' Should all the input files be merged togheter'
+                        ' (if so, choose this option)'
+                        ' or treated seperatedly (that\'s the default)?'
+                        ' See paper for details.')
     parser.add_argument('-t', '--threshold',
                         action='store', type=float, default=0,
                         help='t promils of windows with highest value'
@@ -245,6 +252,9 @@ def main():
         model.read_in_files(arguments.control, resolution=arguments.resolution,
                             add = True)
         model.normalise_data()
+    if arguments.merge:
+        logging.debug("Merging files...")
+        model.merge_data()
     if arguments.groups:
         logging.debug("I will initialise grouped means")
         model.initialise_grouped_means(arguments.groups, arguments.quantiles)

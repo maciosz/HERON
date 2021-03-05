@@ -28,6 +28,9 @@ class Data():
         self.scores = []
         self.posteriors = []
 
+    def merge_data(self):
+        self.matrix = self.matrix.sum(axis=1)[:, numpy.newaxis]
+
     def filter_data(self, threshold):
         """
         Set data above the given threshold to the median.
@@ -179,45 +182,6 @@ class Data():
         # jezeli bedzie duzo okien o takich wartosciach to usune znacznie wiecej niz threshold.
         # ale nie wiem czy to nam przeszkadza.
 
-    #def windows_to_intervals(self, which_line=0):
-    #    """
-    #    Convert data stored in self.matrix as windows
-    #    to intervals, savable in bed.
-    #    That is - merge neighbouring windows
-    #    if they have the same value,
-    #    and set proper coordinates at the end of chromosomes.
-
-    #    Returns list of tuples (chr, start, end, value).
-
-    #    which_line: integer;
-    #        which line of the matrix should be converted
-    #        (which sample / patient / matrix column);
-    #        indexing 0-based
-    #    """
-    #    #self.matrix = self.matrix.transpose()
-    #    output = []
-    #    previous_value = None
-    #    start, end = 0, None
-    #    previous_chromosome = 0
-    #    window = -1
-    #    for value in self.matrix[:, which_line]:
-    #        chromosome, window = self._goto_next_window(previous_chromosome, window)
-    #        if chromosome != previous_chromosome:
-    #            end = self.chromosome_ends[previous_chromosome]
-    #        elif value != previous_value and previous_value is not None:
-    #            end = window * self.window_size
-    #        if end is not None:
-    #            output.append([self.chromosome_names[previous_chromosome],
-    #                           start, end, previous_value])
-    #            start = window * self.window_size #+ 1
-    #            # beds are 0-based, half-open, so I think this should work fine.
-    #            end = None
-    #        previous_value, previous_chromosome = value, chromosome
-    #    output.append([self.chromosome_names[-1], start, self.chromosome_ends[-1], value])
-    #    #self.matrix = self.matrix.transpose()
-    #    self.intervals = output
-    #    return output
-
     def states_to_intervals(self):
         """
         Convert data stored in self.states as windows
@@ -227,6 +191,7 @@ class Data():
         and set proper coordinates at the end of chromosomes.
 
         Returns list of tuples (chr, start, end, value).
+        (does it have to return anything if it sets an attribute?..)
         """
         output = []
         previous_value = None

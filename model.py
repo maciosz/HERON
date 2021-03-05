@@ -248,6 +248,11 @@ class Model():
                                           prepare_metadata=False)
         self.data_for_training = copy.deepcopy(self.data)
 
+    def merge_data(self):
+        self.data.merge_data()
+        self.data_for_training.merge_data()
+        self.number_of_samples = 1
+
     def filter_data(self, threshold):
         """
         Filter the data above fixed threshold.

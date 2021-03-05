@@ -161,6 +161,11 @@ You can provide multiple files as input,
  It is not very likely that artificial peaks originating from noise
  will be highly repetitive between replicates.
 
+If you provide multiple files you can choose between two approaches:
+ (1) treat every file seperately, i.e. analysed data is multidimensional; or
+ (2) merge the files togheter, i.e. analysed data is sum of all the signals.
+ Just add "--merge" if you want to choose the latter.
+
 You can also provide multiple sample that are divided into some groups:
  e.g. 3 samples from tissue A and 2 samples from tissue B,
  or samples from different grades of tumour.
@@ -213,6 +218,15 @@ Resolution to use. Ignored when input files are bedgraphs. Defaults to 600.
 
 What should I save as peak scores to the bed file?
  Possible options: uhmm, none so far.
+
+#### --merge
+
+Ignored when you provide only one input file
+ (or one input file and one control for it).
+ Should all the input files be merged togheter (if so, choose this option)
+ or treated seperatedly (that's the default)?
+ See paper for details.
+
 
 ### You probably don't want to use these:
 
