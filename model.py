@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3.6
 import copy
 import logging
 import warnings
@@ -267,7 +267,7 @@ class Model():
         """
         Filter the data for training,
         removing windows with highest values (outliers),
-        thus deconnecting chromosomes.
+        thus disconnecting chromosomes.
         See data.Data.split_data for details.
 
         threshold - how many promils of windows we want to remove
@@ -367,17 +367,26 @@ class Model():
     #        save_intervals_as_bed(output_name, intervals, state)
 
     def save_state(self, output_prefix, which,
-                   suffix=None, save_score=False):
+                   suffix=None, save_score=False, which_score='mean_cov'):
         if suffix is None:
             suffix = "_state_%d.bed" % which
+        which_score = {'prob':0, 'median_prob':1, 'max_prob':2,
+                       'mean_cov':3, 'max_cov':4, 'length':5}[which_score]
         name = output_prefix + suffix
-        self.data.save_intervals(name, which, save_score=save_score)
+        self.data.save_intervals(name, which, save_score=save_score,
+                                 which_score=which_score)
 
     def save_all_states(self, output_prefix):
         self.data.save_intervals("%s_all_states.bed" % output_prefix,
                                  save_value=True)
         for state in range(self.number_of_states):
             self.save_state(output_prefix, state)
+
+    def save_peaks_as_tab(self, output_prefix, which):
+        # przydalby sie tu naglowek jeszcze.
+        name = "%s_peaks.tab" % output_prefix
+        self.data.save_intervals(name, which, save_score=True,
+                                 which_score="all")
 
     def write_stats_to_file(self, output_prefix):
         """
@@ -403,6 +412,7 @@ class Model():
         output_file.write("Probability:\t%f\n" % self.probability)
 
     def _write_some_stat_to_file(self, output_file, name):
+        # czemu nie uzywam tu array2str z utils.py?
         output_file.write("%s:\n" % name)
         for i, stats in enumerate(self.model.__getattribute__(name + "_")):
             if len(stats.shape) == 1:

@@ -102,7 +102,7 @@ If you specify `--save-all-states` option
 
 If you only want to find peaks using default parameters you can probably skip this section.
 
-Peakcaller uses Hidden Markov Models to discover sites of enrichment.
+The peakcaller uses Hidden Markov Models to discover sites of enrichment.
  Hidden Markov Model used here by default has three states.
  We assume each state emits signal (read coverage) from some distribution;
  currently Gaussian and negative binomial are supported.
@@ -119,7 +119,7 @@ We estimate initial parameters of HMM in the following way:
  If distribution is set to negative binomial,
  parameters p and r are calculated from means and covariance.
  With this initial parameters, we can start training our HMM.
- We use Expectation Maximasation algorithm, for HMMs known as Baum-Welch algorithm.
+ We use Expectation Maximisation algorithm, for HMMs known as Baum-Welch algorithm.
  Briefly, the algorithms iteratively tries to improve our estimates of model's parameters
  (transition matrix, initial probabilities and parameters of distributions).
  
@@ -216,8 +216,10 @@ Resolution to use. Ignored when input files are bedgraphs. Defaults to 600.
 
 ##### --scores
 
-What should I save as peak scores to the bed file?
- Possible options: uhmm, none so far.
+What should I save as peak score to the bed file?
+ Possible options: prob, median\_prob, max\_prob, mean\_cov, max\_cov, length;
+ prob stands for posterior probability, cov for coverage.
+ See README for details. Defaults to mean\_cov.
 
 #### --merge
 
@@ -314,7 +316,25 @@ Are your samples divided into groups?
 
 ## Scoring peaks
 
-TBA.
+Every peak consists of some number of windows.
+ For every window we can calculate the coverage of reads in this window
+ and the posterior probability that this window is indeed a part of a peak
+ (is in state "peak", speaking in HMM language).
+ Basing on this, six ways of scoring peaks are available:
+
+ - posterior probability that all these windows are in state "peak";
+ i.e. probability that indeed this whole region is a peak;
+ i.e. the product of the posterior probabilities in windows
+ - median posterior probability (prob)
+ - maximum posterior probability (median\_prob)
+ - mean coverage (mean\_cov)
+ - maximum coverage (max\_cov)
+ - length of the peak (length).
+
+By default in bed file mean coverage is reported.
+ All the others scores are also saved, but in tab file.
+ If you want some other score saved in bed file,
+ you can specify which one via "--peaks" argument.
 
 ## Bibliography
 

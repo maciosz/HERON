@@ -93,7 +93,7 @@ def fill_covars(covars, covariance_type='full', n_components=1, n_features=1):
 
 def array2str(array):
     """
-    Changes array to readable string.
+    Changes an array to a readable string.
     [1, 2, 3] -> 1\t2\t3
 
     [[1,2], [3,4]]

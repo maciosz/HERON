@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.6
 
 import os
 import sys
@@ -14,6 +14,7 @@ for key, values in DISTRIBUTIONS.items():
     for value in values:
         DISTRIBUTIONS_REVERSE[value] = key
 COVARIANCE_TYPES = ['full', 'diag', 'spherical', 'tied']
+POSSIBLE_SCORES = ['prob', 'median_prob', 'max_prob', 'mean_cov', 'max_cov', 'length']
 
 class StreamToLogger():
     """
@@ -75,10 +76,12 @@ def parse_arguments():
                         help=
                         'Resolution to use. Ignored when input files are bedgraphs.'
                         'Defaults to 600.')
-    parser.add_argument('--scores',
+    parser.add_argument('--scores', default='mean_cov',
                         help=
                         'What should I save as peak score to the bed file?'
-                        ' Possible options: uhmm, none so far.')
+                        ' Possible options: prob, median_prob, max_prob, mean_cov, max_cov, length;'
+                        ' prob stands for posterior probability, cov for coverage.'
+                        ' See README for details. Defaults to mean_cov.')
     parser.add_argument('--dont-save-peaks', dest='save_peaks',
                         action='store_false',
                         help=
@@ -131,10 +134,6 @@ def parse_arguments():
                         ' it can end up as full one.'
                         ' Defaults to diag; if you choose grouped but don\'t provide "-g"'
                         ' it will be full.')
-    #parser.add_argument('-c', '--covars', action='store_true',
-    #                    help=
-    #                    'Should covars be initialised in a grouped way?'
-    #                    ' Ignored when -g is not provided or when distribution is not Gaussian.')
     parser.add_argument('--debug', action='store_true',
                         help=
                         'If you want I can save all intermediate results.'
@@ -178,11 +177,17 @@ def check_args(args):
             # TODO: maybe prefix is simply a directory name?
             # Then we don't want _. To check.
             args.debug_prefix += "_"
+    if args.scores not in POSSIBLE_SCORES:
+        raise ValueError("Unknown --scores argument."
+                         " I can recognise the following names: %s."
+                         " You wanted %s. Is it on the list above?"
+                         " No, it's not. So I don't recognise it." %
+                         (POSSIBLE_SCORES, args.scores))
     return args
 
 def get_covariance_type(args):
     if args.distribution == "NB" and args.covariance_type is not None:
-        logging.info("Argument covariance type is ignored for Negative Binomial distribution.")
+        logging.info("Argument covariance type is ignored for Negative Binomial distribution. Just sayin.")
     if args.distribution == "Gauss" and args.covariance_type is None:
         args.covariance_type = 'diag'
     grouped = False
@@ -274,10 +279,11 @@ def main():
     model.predict_states()
     peaks = model.which_state_is_peaks()
     logging.info("Peaks: state %d", peaks)
-    model.score_peaks(peaks)
     if arguments.save_peaks:
+        model.score_peaks(peaks)
         model.save_state(arguments.output_prefix, peaks, "_peaks.bed",
-                         save_score=True)
+                         save_score=True, which_score=arguments.scores)
+        model.save_peaks_as_tab(arguments.output_prefix, peaks)
     if arguments.save_all_states:
         model.save_all_states(arguments.output_prefix)
     model.write_stats_to_file(arguments.output_prefix)

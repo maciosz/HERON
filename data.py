@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3.6
 
 import math
 import logging
@@ -315,12 +315,6 @@ class Data():
                     start = current_window * resolution
                     end = start + resolution
                     values = [position.n]
-                else:
-                    print("cos nie tak")
-                    print(position.pos)
-                    print(start, end)
-                    print(current_window, previous_window)
-                    print(values)
                 previous_window = current_window
             if current_window != (self.numbers_of_windows[chr_id] - 1):
                 final_window_length = resolution
@@ -328,7 +322,6 @@ class Data():
                 final_window_length = self.chromosome_ends[chr_id] % resolution
                 if final_window_length == 0:
                     final_window_length = resolution
-            #if final_window_length != 0 and len(values) != 0:
             value = sum(values)
             if mean:
                 value = float(value) / final_window_length
@@ -487,9 +480,15 @@ class Data():
         logging.debug(invalid_rows)
         logging.debug(type(invalid_rows))
         self._split_data(invalid_rows)
+        # to splitowanie nie jest juz potrzebne
+        # dodalam bo wychodzily nan przy logarytmoawniu zera i dzieleniu przez zero
+        # natomiast nawet jak cos pojdzie nie tak i sie to splitowanie wydarzy,
+        #  to predykowanie stanow tego nie uwzglednia chyba?
+        # Wydaje mi sie ze cos dalej bylo nie tak z rozspojnionymi koordynatami.
 
     def save_intervals(self, output, condition=None,
-                       save_value=False, save_score=False):
+                       save_value=False, save_score=False,
+                       which_score=3):
         if self.intervals is None:
             self.states_to_intervals()
         output = open(output, 'w')
@@ -501,7 +500,20 @@ class Data():
                     # ? po co to?
                     interval[-1] = int(interval[-1])
                 if save_score:
-                    interval.append(self.scores[nr])
+                    if type(which_score) is int:
+                        if which_score >= len(self.scores[nr]):
+                            raise ValueError("I have %s types of scores to choose from,"
+                                             " and you want the score with index %s."
+                                             " With zero-relative indexing. Good luck with that."
+                                             % (len(self.scores[nr]), which_score))
+                        score = [self.scores[nr][which_score]]
+                    elif which_score == "all":
+                        score = self.scores[nr]
+                    else:
+                        raise ValueError("which_score should be either an index"
+                                         " or string 'all'. You wanted %s."
+                                         " I don't understand it, sorry." % which_score)
+                    interval.extend(score)
                 output.write('\t'.join(map(str, interval)))
                 output.write('\n')
         output.close()
@@ -517,62 +529,38 @@ class Data():
         posteriors = self.posteriors
         if self.intervals is None:
             self.states_to_intervals()
-        start_index = 0
-        end_index = 0
         for interval in self.intervals:
-            # w tej chwili tu jest kilka sposobow, ale tylko jeden
-            #  faktycznie cos zmienia w atrybutach
             chrom, start, end, state = interval
-            number_of_windows = (end - start) / self.window_size
-            number_of_windows = int(numpy.ceil(number_of_windows))
-            end_index = start_index + number_of_windows
-            #self.score_peak(start_index, end_index, state)
             scores = self.score_peak(start, end, state)
-            # self.scores.append(scores)
-            interval_posteriors = posteriors[start_index:end_index, state]
-            interval_coverages = self.matrix[start_index:end_index, :]
-            score = _get_score_from_posteriors(interval_posteriors)
-            # jak chce je trzymac wszystkie?
-            coverage_scores = _get_scores_from_values(interval_coverages)
-            posteriors_scores = _get_scores_from_values(interval_posteriors)
-            other_scores = {'length' : (end - start)}
-            self.scores.append(score)
-            start_index = end_index
+            self.scores.append(scores)
 
     def score_peak(self, start, end, state):
         length = end - start
-        # to nizej do sprawdzenia czy faktycznie daje to samo co w funkcji wyzej
         start = int(numpy.floor(start / self.window_size))
         end = int(numpy.floor(end / self.window_size))
         posteriors = self.posteriors[start:end, state]
         coverages = self.matrix[start:end, :]
         posteriors_scores = _get_scores_from_values(posteriors)
         coverage_scores = _get_scores_from_values(coverages)
-        scores = [posteriors_scores['mean'],
+        scores = [#posteriors_scores['mean'],
+                  posteriors_scores['product'],
                   posteriors_scores['median'],
                   posteriors_scores['max'],
-                  posteriors_scores['product'],
                   coverage_scores['mean'],
                   coverage_scores['median'],
                   coverage_scores['max'],
-                  coverage_scores['sum'],
+                  #coverage_scores['sum'],
                   length]
+        return scores
 
+# w tej chwili to jest nieuzywane, i chyba juz nie bedzie
 def _get_score_from_posteriors(posteriors):
     # na razie po prostu max
     chosen_posteriors =  max(posteriors)
     # i robie log(1-x) * -10 zeby bylo bardziej human readable
     return _transform_posteriors_for_readability(chosen_posteriors)
-
-def _get_scores_from_posteriors(posteriors):
-    product = numpy.product(posteriors)
-    maximum = max(posteriors)
-    return [product, maximum,
-            _transform_posteriors_for_readability(product),
-            _transform_posteriors_for_readability(maximum)]
-
-def _get_scores_from_coverages(coverages):
-    pass
+    # ...tylko czy to posteriors z hmmlearn to juz nie jest log?
+    # Po wartosciach patrzac nie. Po dokumentacji - tak.
 
 def _check_condition(condition, interval):
     if condition is None:
@@ -580,40 +568,22 @@ def _check_condition(condition, interval):
     value = interval[-1]
     return value == condition
 
-#def _get_scores_for_interval()
-
 def _get_scores_from_values(values):
     # a co kiedy pokrycia sa wielowymiarowe?
-    functions = {'mean':numpy.mean, 'median':numpy.median, 'max':max,
-                 'product':numpy.product, 'sum':sum}
+    # imho niewiele to zmienia, musze je tylko splaszczyc.
+    # (a nawet nie, bo funkcje numpy'owe traktuja je po prostu jak splaszczone.)
+    # Posteriors wciaz bedzie jednowymiarowe,
+    #  a co do pokryc to moze mnie interesowac max / mean etc
+    #  po wszystkich wartosciach, tj. po oknach i po probkach.
+    # Ew. moge najpierw usrednic po oknach i z tego brac max / mean.
+    # Moge jedna i druga wersje zapisywac.
+    functions = {'mean':numpy.mean, 'median':numpy.median, 'max':numpy.max,
+                 'product':numpy.product, 'sum':numpy.sum}
     scores = {}
-    for function_name in functions.keys():
-        scores[function_name] = []
-    for value in values:
-        for name, function in functions.items():
-            # na razie, poki nie rozkminie wielowymiarowego przypadku...
-            score = 1
-            #score = function(values)
-            scores[name].append(score)
+    for name, function in functions.items():
+        score = function(values)
+        scores[name] = score
     return scores
-
-#def save_intervals_as_bed(output, intervals, condition=None, save_value=False):
-#    """
-#    Given set of intervals, saves it to file in bed format.
-#    Chooses only the intervals with value equal to condition.
-#    condition = None means all the intervals.
-#    save_value = False means write only coordinates.
-#    """
-#    output = open(output, 'w')
-#    for interval in intervals:
-#        if _check_condition(condition, interval):
-#            if save_value is False:
-#                interval = interval[:-1]
-#            else:
-#                interval[-1] = int(interval[-1])
-#            output.write('\t'.join(map(str, interval)))
-#            output.write('\n')
-#    output.close()
 
 def _transform_posteriors_for_readability(posteriors):
     # robie log(1-x) * -10 zeby bylo bardziej human readable
