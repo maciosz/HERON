@@ -1130,6 +1130,8 @@ class NegativeBinomialHMM(_BaseHMM):
         I'm not sure if it's the best way,
          maybe simple quantiles would be better?
          But it's ready, so I'll go with it for now.
+
+        Ok, it's actually not used. I leave it just in case.
         """
         kmeans = cluster.KMeans(n_clusters=self.n_components,
                                 random_state=self.random_state)

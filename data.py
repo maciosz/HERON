@@ -426,7 +426,7 @@ class Data():
         self.matrix = numpy.delete(self.matrix, column_index, 1)
 
     def normalise_column(self, signal_column, control_column,
-                         how = "log_diff"):
+                         how="log_diff"):
         """
         signal_column - index of column with signal (the one we want to normalise)
         control_column - index of column with control (used to normalise)
@@ -446,7 +446,7 @@ class Data():
         self.matrix[:, signal_column] = normalized
 
     def normalise_signals(self, signal_columns, control_columns,
-                          how = "log_diff"):
+                          how="log_diff"):
         """
         Normalise columns with signal samples using columns with control samples.
         Afterwards remove the control columns.
@@ -538,25 +538,33 @@ class Data():
         length = end - start
         start = int(numpy.floor(start / self.window_size))
         end = int(numpy.floor(end / self.window_size))
+        # end is in this window, but to take the right slice we need to add 1
+        end += 1
         posteriors = self.posteriors[start:end, state]
         coverages = self.matrix[start:end, :]
-        posteriors_scores = _get_scores_from_values(posteriors)
+        try:
+            posteriors_scores = _get_scores_from_values(posteriors)
+        except ValueError:
+            logging.warning("ValueError in scoring posteriors")
+            logging.warning("start %d, end %d, posteriors:" % (start, end))
+            logging.warning(str(posteriors))
+            posteriors_scores = _get_scores_from_values([0])
         coverage_scores = _get_scores_from_values(coverages)
         scores = [#posteriors_scores['mean'],
-                  posteriors_scores['product'],
-                  posteriors_scores['median'],
-                  posteriors_scores['max'],
-                  coverage_scores['mean'],
-                  coverage_scores['median'],
-                  coverage_scores['max'],
-                  #coverage_scores['sum'],
-                  length]
+            posteriors_scores['product'],
+            posteriors_scores['median'],
+            posteriors_scores['max'],
+            coverage_scores['mean'],
+            coverage_scores['median'],
+            coverage_scores['max'],
+            #coverage_scores['sum'],
+            length]
         return scores
 
 # w tej chwili to jest nieuzywane, i chyba juz nie bedzie
 def _get_score_from_posteriors(posteriors):
     # na razie po prostu max
-    chosen_posteriors =  max(posteriors)
+    chosen_posteriors = max(posteriors)
     # i robie log(1-x) * -10 zeby bylo bardziej human readable
     return _transform_posteriors_for_readability(chosen_posteriors)
     # ...tylko czy to posteriors z hmmlearn to juz nie jest log?

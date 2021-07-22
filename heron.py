@@ -117,7 +117,7 @@ def parse_arguments():
                         help=
                         'What quantiles should I use as no-signal, background and enrichment?'
                         ' Or as any other states, if you don\'t want 3 states.'
-                        ' Defaults to 0,0.5,0.99 for 3 states'
+                        ' Defaults to 0 0.5 0.99 for 3 states'
                         ' or evenly spaced between 0 and 1 for any other number.')
                         #' I will always start from value zero anyway.')
     parser.add_argument('-c', '--covariance-type', default=None,
@@ -255,7 +255,7 @@ def main():
         model.filter_training_data(arguments.threshold)
     if arguments.control is not None:
         model.read_in_files(arguments.control, resolution=arguments.resolution,
-                            add = True)
+                            add=True)
         model.normalise_data()
     if arguments.merge:
         logging.debug("Merging files...")
@@ -287,6 +287,9 @@ def main():
     if arguments.save_all_states:
         model.save_all_states(arguments.output_prefix)
     model.write_stats_to_file(arguments.output_prefix)
+    # for debugging:
+    #with open("%s_datamatrix.tab" % arguments.output_prefix, "w") as output:
+    #    model.write_matrix_to_file(output)
     logging.info("...done.")
 
 if __name__ == '__main__':

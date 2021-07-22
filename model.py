@@ -239,7 +239,7 @@ class Model():
             mean = False
         elif self.distribution == "Gauss":
             mean = True
-        if add == False:
+        if not add:
             self.number_of_samples = len(files)
             logging.debug("Number of files: %d", self.number_of_samples)
             self.data.add_data_from_files(files, resolution, mean)
@@ -580,4 +580,3 @@ def which_state_is_peaks(means):
                     " and feel free to change my decision."
                     " All the states might be saved anyway (with --save-all-states option).")
     return numpy.random.choice(which_states_have_highest_single_mean)
-

@@ -491,12 +491,12 @@ class _BaseHMM(BaseEstimator):
                         output.write(array2str(framelogprob))
                 logprob, fwdlattice = self._do_forward_pass(framelogprob)
                 if self.debug_prefix is not None:
-                    logprobs_file.write("%d\t%d\t%f\t%f\n" % (self.iteration, self.inner_iteration, logprob, curr_logprob))
-                if self.debug_prefix is not None:
                     with open("%sfwdlattice_%d_%d" %
                               (self.debug_prefix, self.iteration, self.inner_iteration), 'w') as output:
                         output.write(array2str(fwdlattice))
                 curr_logprob += logprob
+                if self.debug_prefix is not None:
+                    logprobs_file.write("%d\t%d\t%f\t%f\n" % (self.iteration, self.inner_iteration, logprob, curr_logprob))
                 bwdlattice = self._do_backward_pass(framelogprob)
                 if self.debug_prefix is not None:
                     with open("%sbwdlattice_%d_%d" %
@@ -517,6 +517,14 @@ class _BaseHMM(BaseEstimator):
             # XXX must be before convergence check, because otherwise
             #     there won't be any updates for the case ``n_iter=1``.
             self._do_mstep(stats)
+
+            if self.debug_prefix is not None:
+                 with open("%sstartprob_%d" %
+                           (self.debug_prefix, self.iteration), 'w') as output:
+                    output.write(array2str(self.startprob_))
+                 with open("%stransmat_%d" %
+                           (self.debug_prefix, self.iteration), 'w') as output:
+                    output.write(array2str(self.transmat_))
 
             self.monitor_.report(curr_logprob)
             if self.monitor_.converged:

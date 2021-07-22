@@ -1,15 +1,23 @@
-# Hidden Markov Model peakcaller for NGS data
+# HERON - HiddEn maRkov mOdel based peak calliNg
 
-The program attempts to identify sites of enrichment
- in the signal from Next Generation Sequencing data;
+HERON attempts to identify sites of enrichment
+ in the signal from Next Generation Sequencing data,
+ like ChIP-seq or ATAC-seq;
  it takes coverages or bams of mapped reads as an input
  and returns bed file with coordinates of peaks,
  i.e. sites of presumed enrichment.
 
+It is mostly intended to use with data forming long peaks,
+ for example ChIP-seqs against H3K27me3 modification.
+ If you expect short, well enriched peaks
+ (for example from ChIP-seqs against a transcription factor),
+ you probably want to use MACS.
+ If MACS doesn't give you satisfying results, give this peakcaller a shot!
+
 *Warning.*
- This is a preliminary test version of a beta version,
+ This is a beta version,
  still under development.
- Because of this, some features might not be fully tested or even implemented.
+ Because of this, some features might not be fully tested.
  In case of any issues, questions, suggestions or bugs please let me know:
  a.macioszek at mimuw.edu.pl.
 
@@ -24,17 +32,7 @@ The program attempts to identify sites of enrichment
 
 These packages can be installed using pip.
 
-Make sure your default python is python3.
- If it's not and you want to keep it that way,
- either modify the first line of `peakcaller.py` and add `3` at the end:
-
-```
-#!/usr/bin/env python3
-```
-
-or run it always explicitly with `python3`, i.e. `python3 peakcaller.py`.
-
-The peakcaller uses also python package `hmmlearn`, but it's modified in comparison to the original one,
+HERON uses also python package `hmmlearn`, but it's modified in comparison to the original one,
  so there is no point in installing it;
  our version is included in the repositorium, in `hmmlearn` directory.
  If you already have `hmmlearn` package, that's ok;
@@ -48,27 +46,27 @@ The peakcaller uses also python package `hmmlearn`, but it's modified in compari
 
 No need to install.
  Just download the whole repository.
- The script you want to run is peakcaller.py.
+ The script you want to run is heron.py.
  Do not move it from this directory;
  it needs to be in the same directory as the rest of the scripts
  and `hmmlearn` directory.
  You can add executive rights to it using command:
 
 ```
-chmod +x peakcaller.py
+chmod +x heron.py
 ```
 
-Then you can run it with just `./peakcaller.py`, instead of `python peakcaller.py`.
+Then you can run it with just `./heron.py`, instead of `python heron.py`.
  
 
 ## Simple usage
 
 ```
-./peakcaller.py -i sample.bam
+./heron.py -i sample.bam
 ```
 or
 ```
-./peakcaller.py -i sample.bedgraph
+./heron.py -i sample.bedgraph
 ```
 
 possibly with
@@ -82,7 +80,7 @@ possibly with
 Bedgraph file should have fixed resolution
  and for every chromosome it should start at 0.
 
-For more possible arguments, go to [Advanced usage](https://github.com/maciosz/peakcaller#advanced-usage) section.
+For more possible arguments, go to the [Advanced usage](https://github.com/maciosz/HERON#advanced-usage) section.
 
 ## Current output
 
@@ -92,7 +90,7 @@ Generates couple of files:
  - `[prefix].log` with log messages
  - `[prefix]_stats.txt` with some statistics and estimated parameters
  - `[prefix]_peaks.tab` similar to the bed file, but with more columns
- corresponding to different ways of scoring peaks. See [Scoring peaks](https://github.com/maciosz/peakcaller#scoring-peaks).
+ corresponding to different ways of scoring peaks. See [Scoring peaks](https://github.com/maciosz/HERON#scoring-peaks).
 
 If you specify `--save-all-states` option
  it will also generate seperate file `[prefix]_state_[x].bed` for each state
@@ -102,7 +100,7 @@ If you specify `--save-all-states` option
 
 If you only want to find peaks using default parameters you can probably skip this section.
 
-The peakcaller uses Hidden Markov Models to discover sites of enrichment.
+HERON uses a Hidden Markov Model to discover sites of enrichment.
  Hidden Markov Model used here by default has three states.
  We assume each state emits signal (read coverage) from some distribution;
  currently Gaussian and negative binomial are supported.
@@ -194,7 +192,7 @@ Input files. .bam and .bedgraph formats are supported.
  program will convert them to integers
  (we don't mind floats with Gaussian distribution).
  You can provide multiple files here;
- see [Multiple files](https://github.com/maciosz/peakcaller#multiple-files) section.
+ see [Multiple files](https://github.com/maciosz/HERON#multiple-files) section.
 
 ##### -o / --output-prefix
 
@@ -219,7 +217,8 @@ Resolution to use. Ignored when input files are bedgraphs. Defaults to 600.
 What should I save as peak score to the bed file?
  Possible options: prob, median\_prob, max\_prob, mean\_cov, max\_cov, length;
  prob stands for posterior probability, cov for coverage.
- See README for details. Defaults to mean\_cov.
+ See [Scoring peaks](https://github.com/maciosz/HERON#scoring-peaks) for details.
+ Defaults to mean\_cov.
 
 #### --merge
 
@@ -324,9 +323,9 @@ Every peak consists of some number of windows.
 
  - posterior probability that all these windows are in state "peak";
  i.e. probability that indeed this whole region is a peak;
- i.e. the product of the posterior probabilities in windows
- - median posterior probability (prob)
- - maximum posterior probability (median\_prob)
+ i.e. the product of the posterior probabilities in windows (prob)
+ - median posterior probability (median\_prob)
+ - maximum posterior probability (max\_prob)
  - mean coverage (mean\_cov)
  - maximum coverage (max\_cov)
  - length of the peak (length).
@@ -334,7 +333,8 @@ Every peak consists of some number of windows.
 By default in bed file mean coverage is reported.
  All the others scores are also saved, but in tab file.
  If you want some other score saved in bed file,
- you can specify which one via "--peaks" argument.
+ you can specify which one via "--scores" argument.
+ Names recognisable by this argument are in brackets above.
 
 ## Bibliography
 
