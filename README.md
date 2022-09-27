@@ -338,4 +338,4 @@ By default in bed file mean coverage is reported.
 
 ## Bibliography
 
-TBA.
+Macioszek Anna, and Wilczyński Bartek. "HERON: A Novel Tool Enables Identification of Long, Weakly Enriched Genomic Domains in ChIP-seq Data." International journal of molecular sciences 22, no. 15 (2021): 8123.
